@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   } = req.body;
 
   const themeDescs = {
-    caffe:        'ordering and enjoying coffee at an Italian-style café in Britain (menus, ordering, paying, sitting down, the coffee itself)',
+    caffe:        'ordering and enjoying coffee at an Italian-style cafe in Britain (menus, ordering, paying, sitting down, the coffee itself)',
     supermercato: 'shopping at a British supermarket (finding items, reading labels, asking for help, checking out, prices)',
     farmacia:     'visiting a British pharmacy or chemist (asking for medicine, describing symptoms, reading instructions)',
     trasporti:    'using British public transport (asking for directions, buying tickets, bus/train/tube)',
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   };
 
   const grammarDescs = {
-    1: 'simple present tense: "I want", "I like", "The café has...", "It opens at...". Focus on affirmative statements.',
+    1: 'simple present tense: "I want", "I like", "The cafe has...", "It opens at...". Focus on affirmative statements.',
     2: 'polite requests: "I would like...", "Could I have...?", "Can I have...?". Explain that "would like" is more polite than "want".',
     3: 'questions: "Where is...?", "How much does it cost?", "What time...?", "Which one...?". Focus on question word order.',
     4: 'present continuous: "I am waiting", "She is ordering", "They are sitting". Contrast with simple present.',
@@ -38,25 +38,35 @@ export default async function handler(req, res) {
 
 CURRICULUM CONTEXT:
 - Theme: ${themeDescs[themeId] || themeDescs.caffe}
-- Session ${sessionInTheme + 1} within this theme (make the situation slightly different each session — different moment, different person speaking, different item)
+- Session ${sessionInTheme + 1} within this theme (make the situation slightly different each session)
 - Grammar focus: ${grammarDescs[grammarLevel] || grammarDescs[1]}
 - Student level: ${levelDescs[level] || levelDescs.principiante}
-- Compound words already used (DO NOT repeat any of these): ${usedList}
+- Compound words already used (DO NOT repeat): ${usedList}
+
+MOST IMPORTANT RULE — NATURAL SENTENCES:
+Write a sentence that a real person would actually say in real life in this situation. The sentence must make complete common sense. Do not construct an unusual or contrived situation just to include a compound word.
 
 COMPOUND WORD RULES:
-- Choose ONE compound word that is: (a) naturally used in the sentence, (b) made of two standalone English words both known to an Italian speaker or guessable from their Italian cognate, (c) thematically relevant
-- Good examples for café theme: coffeehouse, tablecloth, teaspoon, milkshake, lunchtime, afternoon, takeaway, checkout, milkjug, coffeecup, teabag, hotdog, overcoat (for waiting outside), raincoat
-- The compound word MUST appear in the English sentence
-- Split it clearly into its two components
+- First write a realistic sentence, THEN find a compound word that fits naturally into it
+- GOOD examples: "I need a teaspoon to stir my coffee." / "Is this a takeaway or eat in?" / "The cafe is open all afternoon."
+- BAD examples: "I want an espresso with a tablecloth." / "I would like a milkshake with my croissant." — these are unnatural
+- The compound word must appear in the sentence without making it sound odd
+- Safe options by theme:
+  cafe: teaspoon, teabag, takeaway, lunchtime, afternoon, teacup
+  supermercato: checkout, supermarket, shopkeeper, timetable
+  farmacia: painkiller, headache, earache, toothache, sunscreen
+  trasporti: underground, timetable, footpath, crossroads, roadworks
+  ristorante: lunchtime, dinnertime, takeaway
+- Compound words already used (do not repeat): ${usedList}
 
-GRAMMAR TIP: The tip must name and explain the grammar concept in simple Italian, using the sentence as an example. Never just translate — explain the rule.
+GRAMMAR TIP: Name and explain the grammar concept in simple Italian using the sentence as an example.
 
 Respond ONLY in this exact JSON. No markdown, no preamble:
 {
   "english": "The sentence here, containing the compound word.",
-  "phonetic": "Guida alla pronuncia con fonetica semplice italiana (solo le parti più difficili)",
+  "phonetic": "Guida alla pronuncia con fonetica semplice italiana (solo le parti piu difficili)",
   "italian": "La traduzione italiana della frase.",
-  "grammarConcept": "Nome breve del concetto (es: 'Presente semplice')",
+  "grammarConcept": "Nome breve del concetto (es: Presente semplice)",
   "tip": "Spiegazione chiara della regola grammaticale in italiano, usando la frase come esempio. Max 2 frasi.",
   "vocab": [
     {"en": "word1", "it": "parola1"},
@@ -67,13 +77,13 @@ Respond ONLY in this exact JSON. No markdown, no preamble:
     "word": "teaspoon",
     "part1": "tea",
     "part2": "spoon",
-    "meaning1": "tè",
+    "meaning1": "te",
     "meaning2": "cucchiaio",
-    "combined": "cucchiaino da tè",
-    "hint": "Cosa usi per mescolare lo zucchero nel caffè?",
-    "explanation": "In inglese, si uniscono due parole per crearne una nuova: 'tea' (tè) + 'spoon' (cucchiaio) = cucchiaino!"
+    "combined": "cucchiaino da te",
+    "hint": "Cosa usi per mescolare lo zucchero nel caffe?",
+    "explanation": "In inglese, si uniscono due parole per crearne una nuova: tea (te) + spoon (cucchiaio) = cucchiaino!"
   },
-  "quizQuestion": "Cosa significa '___' nella frase?",
+  "quizQuestion": "Cosa significa ___ nella frase?",
   "quizCorrect": "La risposta corretta in italiano",
   "quizWrong1": "Risposta sbagliata plausibile 1",
   "quizWrong2": "Risposta sbagliata plausibile 2",
