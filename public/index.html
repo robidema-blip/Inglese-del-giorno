@@ -10,13 +10,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
-  apiKey: "AIzaSyCadBE7AuaxzMVjVsKNIYvB-6dIwuyhHuI",
-  authDomain: "english-daily-13316.firebaseapp.com",
-  projectId: "english-daily-13316",
-  storageBucket: "english-daily-13316.firebasestorage.app",
-  messagingSenderId: "635021407097",
-  appId: "1:635021407097:web:abb860ac316047364935a8"
-};
+    apiKey: "YOUR_REAL_KEY_STAYS_HERE",
+    authDomain: "YOUR_REAL_VALUE_STAYS_HERE",
+    projectId: "YOUR_REAL_VALUE_STAYS_HERE",
+    storageBucket: "YOUR_REAL_VALUE_STAYS_HERE",
+    messagingSenderId: "YOUR_REAL_VALUE_STAYS_HERE",
+    appId: "YOUR_REAL_VALUE_STAYS_HERE"
+  };
   firebase.initializeApp(firebaseConfig);
   window._auth = firebase.auth();
   window._db   = firebase.firestore();
@@ -183,13 +183,44 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .app-body{max-width:680px;margin:0 auto;padding:1.4rem 1rem 5rem;width:100%;}
 
 /* level pills */
-.level-group{display:flex;gap:0.4rem;margin-bottom:1.2rem;}
-.level-btn{
-  flex:1;padding:0.4rem 0.3rem;font-size:0.75rem;font-weight:600;
-  border:1.5px solid var(--border);border-radius:20px;
-  background:transparent;color:var(--ink-faint);cursor:pointer;transition:all 0.18s;
+/* ── LEVEL TIMELINE ── */
+.level-timeline{margin-bottom:1.4rem;}
+.level-track{position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;}
+.level-track::before{
+  content:'';position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+  height:3px;background:var(--border);border-radius:2px;z-index:0;
 }
-.level-btn.active{background:var(--night);border-color:var(--night);color:#fff;}
+.level-track-fill{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  height:3px;background:var(--terra);border-radius:2px;z-index:1;
+  transition:width 0.4s cubic-bezier(.4,0,.2,1);
+}
+.level-node{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  cursor:pointer;background:none;border:none;padding:0;
+}
+.level-dot{
+  width:22px;height:22px;border-radius:50%;
+  border:2.5px solid var(--border);background:var(--cream);
+  transition:all 0.25s;display:flex;align-items:center;justify-content:center;
+  font-size:0.6rem;color:transparent;
+}
+.level-node.active .level-dot{
+  background:var(--terra);border-color:var(--terra);color:#fff;
+  box-shadow:0 0 0 4px var(--terra-glow);
+}
+.level-node.reached .level-dot{
+  background:var(--warm-white);border-color:var(--terra);
+}
+.level-labels{display:flex;justify-content:space-between;padding:0 0;}
+.level-label{
+  font-size:0.72rem;font-weight:600;color:var(--ink-faint);
+  text-align:center;width:80px;cursor:pointer;transition:color 0.2s;
+  letter-spacing:0.02em;
+}
+.level-label.active{color:var(--terra);}
+.level-sublabel{font-size:0.64rem;color:var(--ink-faint);opacity:0.7;}
 .date-row{font-family:'Lora',serif;font-size:0.8rem;color:var(--ink-faint);font-style:italic;margin-bottom:1rem;text-align:center;}
 
 /* ── LESSON CARD ── */
@@ -423,6 +454,63 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .fade-in{animation:fadeUp 0.32s ease both;}
 .hidden{display:none!important;}
+
+/* ── READING CHALLENGE CARD ── */
+.reading-banner{
+  background:linear-gradient(135deg,var(--night) 0%,var(--night-2) 100%);
+  border:1px solid var(--border-night);
+  border-radius:16px;padding:1rem 1.4rem;margin-bottom:1rem;
+  display:flex;align-items:center;gap:0.9rem;
+}
+.reading-banner-icon{font-size:1.6rem;flex-shrink:0;}
+.reading-banner-text h3{font-family:'Playfair Display',serif;font-size:1rem;color:#fff;margin-bottom:0.15rem;}
+.reading-banner-text p{font-size:0.78rem;color:rgba(255,255,255,0.42);font-family:'Lora',serif;font-style:italic;}
+.reading-card{
+  background:var(--warm-white);border:1px solid var(--border);
+  border-radius:18px;padding:1.8rem;
+  box-shadow:0 2px 24px rgba(0,0,0,0.06);margin-bottom:1rem;
+}
+.reading-title{
+  font-family:'Playfair Display',serif;font-size:1.2rem;
+  color:var(--ink);margin-bottom:0.35rem;font-weight:700;
+}
+.reading-meta{font-size:0.72rem;color:var(--ink-faint);margin-bottom:1.2rem;letter-spacing:0.06em;text-transform:uppercase;}
+.reading-body p{
+  font-family:'Lora',serif;font-size:0.97rem;line-height:1.8;
+  color:var(--ink-soft);margin-bottom:1rem;
+}
+.reading-body p:last-child{margin-bottom:0;}
+.reading-body .reading-highlight{
+  color:var(--terra);font-weight:600;
+  border-bottom:1.5px solid var(--terra);cursor:help;
+}
+.reading-translation{
+  margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--border);
+  display:none;
+}
+.reading-translation.show{display:block;}
+.reading-translation p{
+  font-size:0.88rem;color:var(--ink-faint);
+  font-family:'Lora',serif;font-style:italic;line-height:1.7;
+  margin-bottom:0.7rem;
+}
+.reading-toggle{
+  width:100%;margin-top:1rem;padding:0.6rem;
+  background:transparent;border:1.5px solid var(--border);
+  color:var(--ink-soft);border-radius:10px;
+  font-size:0.86rem;font-weight:600;cursor:pointer;transition:all 0.18s;
+}
+.reading-toggle:hover{border-color:var(--terra);color:var(--terra);}
+.reading-vocab{margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);}
+.reading-vocab-title{font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:0.6rem;}
+.reading-comprehension{
+  background:var(--gold-bg);border:1.5px solid var(--gold-border);
+  border-radius:14px;padding:1.3rem 1.4rem;margin-bottom:1rem;
+}
+.reading-comprehension-label{font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.7rem;}
+.reading-q{font-family:'Playfair Display',serif;font-size:0.97rem;color:var(--ink);margin-bottom:0.8rem;}
+.reading-q-options{display:flex;flex-direction:column;gap:0.4rem;}
+
 </style>
 </head>
 <body>
@@ -543,10 +631,18 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
     <!-- ── LESSON ── -->
     <div id="tab-lesson">
       <div class="date-row" id="dateDisplay"></div>
-      <div class="level-group">
-        <button class="level-btn active" id="lvlA" onclick="setLevel('principiante')">Beginner</button>
-        <button class="level-btn" id="lvlB" onclick="setLevel('intermedio')">Intermediate</button>
-        <button class="level-btn" id="lvlC" onclick="setLevel('avanzato')">Advanced</button>
+      <div class="level-timeline">
+        <div class="level-track">
+          <div class="level-track-fill" id="levelFill" style="width:0%"></div>
+          <button class="level-node active" id="lvlA" onclick="setLevel('principiante')"><div class="level-dot">✓</div></button>
+          <button class="level-node" id="lvlB" onclick="setLevel('intermedio')"><div class="level-dot">✓</div></button>
+          <button class="level-node" id="lvlC" onclick="setLevel('avanzato')"><div class="level-dot">✓</div></button>
+        </div>
+        <div class="level-labels">
+          <span class="level-label active" id="lblA" onclick="setLevel('principiante')">Beginner<br><span class="level-sublabel">A1–A2</span></span>
+          <span class="level-label" id="lblB" onclick="setLevel('intermedio')">Intermediate<br><span class="level-sublabel">B1–B2</span></span>
+          <span class="level-label" id="lblC" onclick="setLevel('avanzato')">Advanced<br><span class="level-sublabel">C1</span></span>
+        </div>
       </div>
       <div class="error-msg" id="errorMsg"></div>
       <div class="main-card" id="mainCard">
@@ -607,27 +703,6 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 
     <!-- ── SETTINGS ── -->
     <div id="tab-settings" class="hidden">
-      <div class="settings-section">
-        <h3>Language & level</h3>
-        <div class="settings-row">
-          <div><div class="settings-label">Native language</div><div class="settings-sub">Used for translations</div></div>
-          <select class="settings-select" id="settingsLang" onchange="changeLang(this.value)">
-            <option value="it">🇮🇹 Italiano</option>
-            <option value="es">🇪🇸 Español</option>
-            <option value="fr">🇫🇷 Français</option>
-            <option value="pt">🇧🇷 Português</option>
-            <option value="de">🇩🇪 Deutsch</option>
-            <option value="zh">🇨🇳 中文</option>
-            <option value="ko">🇰🇷 한국어</option>
-            <option value="ja">🇯🇵 日本語</option>
-            <option value="ar">🇸🇦 العربية</option>
-            <option value="ru">🇷🇺 Русский</option>
-            <option value="pl">🇵🇱 Polski</option>
-            <option value="nl">🇳🇱 Nederlands</option>
-          </select>
-        </div>
-      </div>
-
       <div class="settings-section">
         <h3>Account</h3>
         <div class="settings-row">
@@ -768,7 +843,6 @@ function bootApp(){
   // settings tab
   $('settingsEmail').textContent=currentUser?.email||'—';
   $('settingsPin').textContent=state.teacherPin||'0000';
-  $('settingsLang').value=currentNativeLang;
   setLevelUI(currentLevel);
   setDateDisplay();
   checkStreak();
@@ -820,10 +894,26 @@ function updateStats(){
 }
 function setLevel(lvl){currentLevel=lvl;setLevelUI(lvl);}
 function setLevelUI(lvl){
-  document.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('active'));
-  if(lvl==='principiante') $('lvlA').classList.add('active');
-  else if(lvl==='intermedio') $('lvlB').classList.add('active');
-  else $('lvlC').classList.add('active');
+  // nodes
+  ['lvlA','lvlB','lvlC'].forEach(id=>{ const el=$(id); if(el){el.classList.remove('active','reached');} });
+  ['lblA','lblB','lblC'].forEach(id=>{ const el=$(id); if(el) el.classList.remove('active'); });
+  const fill=$('levelFill');
+  if(lvl==='principiante'){
+    $('lvlA')?.classList.add('active');
+    $('lblA')?.classList.add('active');
+    if(fill) fill.style.width='0%';
+  } else if(lvl==='intermedio'){
+    $('lvlA')?.classList.add('reached');
+    $('lvlB')?.classList.add('active');
+    $('lblB')?.classList.add('active');
+    if(fill) fill.style.width='50%';
+  } else {
+    $('lvlA')?.classList.add('reached');
+    $('lvlB')?.classList.add('reached');
+    $('lvlC')?.classList.add('active');
+    $('lblC')?.classList.add('active');
+    if(fill) fill.style.width='100%';
+  }
 }
 
 async function getNewSentence(){
@@ -833,17 +923,21 @@ async function getNewSentence(){
   $('quizBtn').textContent='📝 Quiz';
   $('compoundSection').classList.add('hidden');
   $('errorMsg').style.display='none';
-  $('mainCard').innerHTML=`<div class="loading-card"><div class="spinner"></div><div class="loading-text">Preparing your lesson…</div></div>`;
+  const isReadingMode=(state.sessionInTheme||0)===11;
+  $('mainCard').innerHTML=`<div class="loading-card"><div class="spinner"></div><div class="loading-text">${isReadingMode?'Preparing your reading challenge…':'Preparing your lesson…'}</div></div>`;
   try{
+    const isReading=(state.sessionInTheme||0)===11;
     const res=await fetch('/api/sentence',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({level:currentLevel,nativeLang:currentNativeLang,themeId:state.themeId||1,
         sessionInTheme:state.sessionInTheme||0,grammarLevel:state.grammarLevel||1,
-        usedCompoundWords:state.usedCompoundWords||[]}),
+        usedCompoundWords:state.usedCompoundWords||[],
+        mode:isReading?'reading':'lesson'}),
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error||'API error');}
     currentSentence=await res.json();
-    renderSentence(currentSentence);
+    if(isReading) renderReading(currentSentence);
+    else renderSentence(currentSentence);
     state.sessionInTheme=(state.sessionInTheme||0)+1;
     if(state.sessionInTheme>=12){state.sessionInTheme=0;state.themeId=((state.themeId||1)%5)+1;}
     state.grammarLevel=Math.min(6,Math.floor((state.totalSentences||0)/4)+1);
@@ -851,9 +945,12 @@ async function getNewSentence(){
     if(currentSentence.compoundWord)
       state.usedCompoundWords=[...new Set([...(state.usedCompoundWords||[]),currentSentence.compoundWord.word])];
     state.sessions=[...(state.sessions||[]).slice(-200),{
-      timestamp:Date.now(),english:currentSentence.english,
-      translation:currentSentence.translation,grammarConcept:currentSentence.grammarConcept,
-      quizResult:null,compoundWord:currentSentence.compoundWord?.word||null,emoji:null,
+      timestamp:Date.now(),
+      english:currentSentence.english||(currentSentence.paragraphs?currentSentence.title:''),
+      translation:currentSentence.translation||(currentSentence.paragraphTranslations?currentSentence.paragraphTranslations[0]:''),
+      grammarConcept:currentSentence.grammarConcept||currentSentence.grammarFocus||'Reading',
+      quizResult:null,compoundWord:currentSentence.compoundWord?.word||null,
+      emoji:null,type:isReading?'reading':'lesson',
     }];
     addVocabCards(currentSentence);
     updateStats();
@@ -914,6 +1011,91 @@ function renderSentence(s){
     </div>`;
   }
   $('quizBtn').classList.remove('hidden');
+}
+
+/* ── READING CHALLENGE RENDERER ── */
+function renderReading(s){
+  // Banner announcing the capstone
+  const banner=`<div class="reading-banner fade-in">
+    <div class="reading-banner-icon">🎓</div>
+    <div class="reading-banner-text">
+      <h3>Reading Challenge</h3>
+      <p>You've completed 11 lessons — time to read!</p>
+    </div>
+  </div>`;
+
+  // Highlight compound words in paragraphs
+  const cws=(s.compoundWords||[]).map(w=>w.word).filter(Boolean);
+  const highlightText=txt=>{
+    let out=esc(txt);
+    cws.forEach(w=>{
+      const re=new RegExp(`(${w})`,'gi');
+      out=out.replace(re,`<span class="reading-highlight" title="${w}">$1</span>`);
+    });
+    return out;
+  };
+
+  const paragraphsHtml=(s.paragraphs||[]).map(p=>`<p>${highlightText(p)}</p>`).join('');
+  const translationsHtml=(s.paragraphTranslations||[]).map(p=>`<p>${esc(p)}</p>`).join('');
+
+  $('mainCard').innerHTML=`${banner}<div class="reading-card fade-in">
+    <div class="reading-title">${esc(s.title||'Reading')}</div>
+    <div class="reading-meta">${esc(s.readingLevel||'')} · ${(s.paragraphs||[]).length} paragraphs · ~${Math.ceil((s.paragraphs||[]).join(' ').split(' ').length/130)} min read</div>
+    <div class="reading-body">${paragraphsHtml}</div>
+    <button class="reading-toggle" onclick="toggleReadingTranslation(this)">Show translation</button>
+    <div class="reading-translation" id="readingTranslation">${translationsHtml}</div>
+    ${s.vocab?.length?`<div class="reading-vocab">
+      <div class="reading-vocab-title">Key vocabulary</div>
+      <div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||v.it||'')}</div>`).join('')}</div>
+    </div>`:''}
+    <button class="listen-btn" onclick="speakReading(${JSON.stringify((s.paragraphs||[]).join(' ')).replace(/"/g,'&quot;')})">🔊 Listen to full text</button>
+    <div class="feedback-row">
+      <span class="feedback-label">How was this reading?</span>
+      <div class="emoji-btns">
+        <button class="emoji-btn" onclick="submitEmoji('😕',this)" title="Too hard">😕</button>
+        <button class="emoji-btn" onclick="submitEmoji('😐',this)" title="OK">😐</button>
+        <button class="emoji-btn" onclick="submitEmoji('😊',this)" title="Good">😊</button>
+        <button class="emoji-btn" onclick="submitEmoji('🤩',this)" title="Loved it">🤩</button>
+      </div>
+      <span class="feedback-thanks" id="feedbackThanks">Thanks!</span>
+    </div>
+  </div>`;
+
+  // Comprehension quiz
+  if(s.comprehensionQuestion){
+    $('compoundSection').classList.remove('hidden');
+    const opts=shuffle([
+      {t:s.comprehensionCorrect,c:true},
+      {t:s.comprehensionWrong1,c:false},
+      {t:s.comprehensionWrong2,c:false},
+    ]);
+    $('compoundSection').innerHTML=`<div class="reading-comprehension fade-in">
+      <div class="reading-comprehension-label">📖 Comprehension check</div>
+      <div class="reading-q">${esc(s.comprehensionQuestion)}</div>
+      <div class="reading-q-options">${opts.map((o,i)=>`<button class="quiz-option" onclick="checkAnswer(this,${o.c})" data-correct="${o.c}">${String.fromCharCode(65+i)}. ${esc(o.t)}</button>`).join('')}</div>
+      <div id="quizFeedback"></div>
+    </div>`;
+  }
+  // Add vocab cards from reading
+  if(s.vocab) addVocabCards({vocab:s.vocab});
+  if(s.compoundWords) s.compoundWords.forEach(c=>addVocabCards({compoundWord:c}));
+  $('quizBtn').classList.add('hidden'); // reading has its own comprehension block
+}
+
+function toggleReadingTranslation(btn){
+  const t=$('readingTranslation');
+  const showing=t.classList.contains('show');
+  t.classList.toggle('show',!showing);
+  btn.textContent=showing?'Show translation':'Hide translation';
+}
+
+function speakReading(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';u.rate=0.9;
+  const voices=window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+  if(voices.length)u.voice=voices[0];
+  window.speechSynthesis.speak(u);
 }
 
 /* ── EMOJI FEEDBACK ── */
