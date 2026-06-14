@@ -12,14 +12,18 @@
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
- const firebaseConfig = {
-    apiKey: "AIzaSyCadBE7AuaxzMVjVsKNIYvB-6dIwuyhHuI",
-    authDomain: "english-daily-13316.firebaseapp.com",
-    projectId: "english-daily-13316",
-    storageBucket: "english-daily-13316.firebasestorage.app",
-    messagingSenderId: "635021407097",
-    appId: "1:635021407097:web:abb860ac316047364935a8"
-  };  // ─────────────────────────────────────────────────────────────────────────────
+  // ── PASTE YOUR FIREBASE CONFIG HERE ──────────────────────────────────────────
+  // Go to Firebase Console → Project Settings → Your apps → Add app (web)
+  // Then paste the firebaseConfig object below:
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+    projectId: "PASTE_YOUR_PROJECT_ID",
+    storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -300,6 +304,10 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
         <label>Teacher PIN (4 digits — share with your teacher)</label>
         <input type="text" id="signupPin" maxlength="4" placeholder="e.g. 1234">
       </div>
+      <div class="form-group">
+        <label>Teacher's email (optional — they'll get your PIN automatically)</label>
+        <input type="email" id="signupTeacherEmail" placeholder="teacher@email.com">
+      </div>
       <button class="auth-btn" onclick="doSignup()">Create account</button>
     </div>
   </div>
@@ -318,20 +326,6 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
       </div>
     </div>
     <div class="topbar-right">
-      <select class="lang-selector" id="langSelector" onchange="changeLang(this.value)" title="Change language">
-        <option value="it">🇮🇹</option>
-        <option value="es">🇪🇸</option>
-        <option value="fr">🇫🇷</option>
-        <option value="pt">🇧🇷</option>
-        <option value="de">🇩🇪</option>
-        <option value="zh">🇨🇳</option>
-        <option value="ko">🇰🇷</option>
-        <option value="ja">🇯🇵</option>
-        <option value="ar">🇸🇦</option>
-        <option value="ru">🇷🇺</option>
-        <option value="pl">🇵🇱</option>
-        <option value="nl">🇳🇱</option>
-      </select>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
@@ -476,13 +470,22 @@ async function doSignup(){
   const pass=document.getElementById('signupPassword').value;
   const lang=document.getElementById('signupLang').value;
   const level=document.getElementById('signupLevel').value;
+  const teacherEmail=document.getElementById('signupTeacherEmail').value.trim();
   const pin=document.getElementById('signupPin').value.padStart(4,'0');
   if(!name||!email||!pass){return showAuthError('Please fill in all fields.');}
   if(pass.length<6){return showAuthError('Password must be at least 6 characters.');}
   try{
     const cred=await fb.createUserWithEmailAndPassword(fb.auth,email,pass);
     const newState={...state,teacherPin:pin};
-    await fb.setDoc(fb.doc(fb.db,'users',cred.user.uid),{name,lang,level,state:newState});
+    await fb.setDoc(fb.doc(fb.db,'users',cred.user.uid),{name,lang,level,teacherEmail,state:newState});
+    // Notify teacher by email
+    if(teacherEmail){
+      await fetch('/api/notify',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({teacherEmail,studentName:name,studentEmail:email,pin,level,lang}),
+      });
+    }
   }catch(e){showAuthError(e.message);}
 }
 
@@ -531,7 +534,6 @@ function bootApp(){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
   document.getElementById('topbarName').textContent=profile.name||'Student';
-  document.getElementById('langSelector').value=currentNativeLang;
   setLevelUI(currentLevel);
   setDateDisplay();
   checkStreak();
@@ -620,6 +622,7 @@ async function getNewSentence(){
   btn.disabled=true;
   document.getElementById('quizSection').style.display='none';
   document.getElementById('quizBtn').style.display='none';
+  document.getElementById('quizBtn').textContent='📝 Quiz';
   document.getElementById('compoundSection').style.display='none';
   document.getElementById('errorMsg').style.display='none';
   card.innerHTML=`<div class="loading-card"><div class="spinner"></div><div class="loading-text">Preparing your lesson…</div></div>`;
