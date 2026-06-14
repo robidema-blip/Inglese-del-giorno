@@ -6,7 +6,6 @@
 <title>English Daily</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-<!-- Firebase SDK -->
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -21,6 +20,7 @@
     appId: "YOUR_REAL_VALUE_STAYS_HERE"
   };
   firebase.initializeApp(firebaseConfig);
+  // compat API: methods are called directly on auth/db objects
   window._auth = firebase.auth();
   window._db   = firebase.firestore();
 </script>
@@ -61,25 +61,23 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .form-group label{display:block;font-size:0.82rem;font-weight:600;color:var(--ink-soft);margin-bottom:0.4rem;letter-spacing:0.04em;}
 .form-group input, .form-group select{width:100%;padding:0.65rem 0.9rem;border:1.5px solid var(--border);border-radius:8px;background:var(--cream);font-family:'Source Sans 3',sans-serif;font-size:0.95rem;color:var(--ink);outline:none;transition:border-color 0.2s;}
 .form-group input:focus, .form-group select:focus{border-color:var(--terracotta);}
+.form-group input.input-error{border-color:#C94040;}
+.form-group input.input-ok{border-color:var(--sage);}
 .auth-btn{width:100%;padding:0.75rem;background:var(--terracotta);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;margin-top:0.5rem;transition:background 0.2s;}
 .auth-btn:hover{background:var(--terra-dark);}
 .auth-error{background:rgba(201,64,64,0.08);border:1px solid rgba(201,64,64,0.25);border-radius:8px;padding:0.6rem 0.9rem;color:#A03030;font-size:0.85rem;margin-bottom:1rem;display:none;}
-.auth-divider{display:flex;align-items:center;gap:0.8rem;margin:1.2rem 0;color:var(--ink-faint);font-size:0.8rem;}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.pw-match-hint{font-size:0.75rem;margin-top:0.3rem;display:none;}
+.pw-match-hint.ok{color:var(--sage);display:block;}
+.pw-match-hint.no{color:#C94040;display:block;}
 
 /* ── APP LAYOUT ─────────────────────────────────────────────── */
 #appScreen{display:none;max-width:680px;margin:0 auto;padding:1.2rem 1rem 5rem;}
-
-/* Top bar */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0 1rem;}
 .topbar-left{display:flex;align-items:center;gap:0.6rem;}
 .app-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--ink);}
 .user-name{font-size:0.8rem;color:var(--ink-faint);}
 .topbar-right{display:flex;gap:0.5rem;align-items:center;}
-.lang-selector{padding:0.35rem 0.6rem;border:1.5px solid var(--border);border-radius:6px;background:var(--warm-white);font-size:0.82rem;color:var(--ink-soft);cursor:pointer;outline:none;}
 .logout-btn{font-size:0.78rem;color:var(--ink-faint);background:none;border:none;cursor:pointer;text-decoration:underline;}
-
-/* Nav tabs */
 .nav-tabs{display:flex;gap:0.4rem;margin-bottom:1.2rem;background:var(--warm-white);border:1px solid var(--border);border-radius:12px;padding:0.3rem;}
 .nav-tab{flex:1;padding:0.5rem;text-align:center;font-size:0.82rem;font-weight:600;border:none;background:transparent;color:var(--ink-faint);border-radius:8px;cursor:pointer;transition:all 0.18s;}
 .nav-tab.active{background:var(--terracotta);color:#fff;}
@@ -90,13 +88,9 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .stat-pill{flex:1;background:var(--warm-white);border:1px solid var(--border);border-radius:10px;padding:0.55rem;text-align:center;}
 .stat-num{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--terracotta);display:block;}
 .stat-lbl{font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-faint);}
-
-/* Level buttons */
 .level-group{display:flex;gap:0.4rem;margin-bottom:1rem;}
 .level-btn{flex:1;padding:0.45rem;font-size:0.78rem;font-weight:600;border:1.5px solid var(--border);border-radius:8px;background:transparent;color:var(--ink-faint);cursor:pointer;transition:all 0.18s;}
 .level-btn.active{background:var(--terracotta);border-color:var(--terracotta);color:#fff;}
-
-/* Main card */
 .main-card{background:var(--warm-white);border:1px solid var(--border);border-radius:18px;padding:1.8rem;box-shadow:0 2px 20px var(--shadow);margin-bottom:0.9rem;}
 .loading-card{text-align:center;padding:3rem 1rem;}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--terracotta);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
@@ -111,12 +105,8 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .vocab-row{display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.8rem;}
 .vocab-chip{background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.6rem;font-size:0.8rem;color:var(--ink-soft);}
 .vocab-chip span{color:var(--terracotta);font-weight:600;}
-
-/* Listen button */
 .listen-btn{width:100%;margin-top:1rem;padding:0.65rem;background:transparent;border:1.5px solid var(--sage);color:var(--sage);border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;}
 .listen-btn:hover{background:var(--sage);color:#fff;}
-
-/* Compound word card */
 .compound-card{background:var(--gold-bg);border:1.5px solid var(--gold);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:0.9rem;}
 .compound-label{font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.8rem;}
 .compound-parts{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.8rem;flex-wrap:wrap;}
@@ -131,8 +121,6 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .compound-revealed.show{display:block;}
 .compound-answer{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--ink);margin-bottom:0.4rem;}
 .compound-explain{font-size:0.85rem;color:var(--ink-soft);line-height:1.55;}
-
-/* Quiz */
 .quiz-card{background:var(--warm-white);border:1px solid var(--border);border-radius:16px;padding:1.6rem;box-shadow:0 2px 16px var(--shadow);margin-bottom:0.9rem;}
 .quiz-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--ink);margin-bottom:1rem;}
 .quiz-options{display:flex;flex-direction:column;gap:0.45rem;}
@@ -143,16 +131,12 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .quiz-feedback{margin-top:0.7rem;padding:0.55rem 0.8rem;border-radius:8px;font-size:0.85rem;font-style:italic;}
 .quiz-feedback.ok{background:rgba(122,158,126,0.12);color:var(--sage);}
 .quiz-feedback.no{background:rgba(201,64,64,0.08);color:#C94040;}
-
-/* Action buttons */
 .action-row{display:flex;gap:0.5rem;margin-bottom:0.5rem;}
 .action-btn{flex:1;padding:0.6rem;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-size:0.85rem;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all 0.18s;}
 .action-btn:hover{border-color:var(--terracotta);color:var(--terracotta);}
 .action-btn.primary{background:var(--terracotta);border-color:var(--terracotta);color:#fff;}
 .action-btn.primary:hover{background:var(--terra-dark);}
 .action-btn:disabled{opacity:0.5;cursor:not-allowed;}
-
-/* Error */
 .error-msg{background:rgba(201,64,64,0.08);border:1px solid rgba(201,64,64,0.25);border-radius:8px;padding:0.7rem 0.9rem;color:#A03030;font-size:0.85rem;margin-bottom:0.8rem;display:none;}
 
 /* ── FLIP CARDS TAB ─────────────────────────────────────────── */
@@ -167,11 +151,9 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .cards-progress-txt{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-faint);margin-top:0.3rem;}
 .flip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;}
 .flip-card-wrap{perspective:1000px;height:180px;cursor:pointer;}
-.flip-card-wrap.hidden{display:none;}
 .flip-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 0.45s cubic-bezier(.4,0,.2,1);}
 .flip-card-wrap.flipped .flip-card-inner{transform:rotateY(180deg);}
 .flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;overflow:hidden;}
-/* Front */
 .flip-front{background:var(--slate);display:flex;flex-direction:column;}
 .flip-front-top{background:rgba(0,0,0,0.2);padding:0.5rem 0.8rem;display:flex;justify-content:space-between;align-items:center;}
 .flip-cat{font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#7BBBE0;}
@@ -180,7 +162,6 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .flip-front-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;}
 .flip-term{font-family:'Playfair Display',serif;font-size:1.35rem;color:#fff;text-align:center;line-height:1.3;}
 .flip-hint{font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:0.5rem;}
-/* Back */
 .flip-back{background:#fff;transform:rotateY(180deg);display:flex;flex-direction:column;}
 .flip-back-top{background:var(--terracotta);padding:0.5rem 0.8rem;}
 .flip-back-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.85);}
@@ -230,18 +211,14 @@ body{background:var(--cream);font-family:'Source Sans 3',sans-serif;color:var(--
 .copy-btn{width:100%;padding:0.7rem;background:var(--slate);color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;margin-top:1rem;transition:background 0.2s;}
 .copy-btn:hover{background:#1e2a38;}
 
-/* ── SHARED ANIMATIONS ──────────────────────────────────────── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 .fade-in{animation:fadeUp 0.38s ease both;}
-
 footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-faint);font-family:'Lora',serif;font-style:italic;}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════
-     AUTH SCREEN
-══════════════════════════════════════════════════════ -->
+<!-- AUTH SCREEN -->
 <div id="authScreen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -265,7 +242,15 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
     <div id="signupForm" style="display:none">
       <div class="form-group"><label>Your name</label><input type="text" id="signupName" placeholder="Maria"></div>
       <div class="form-group"><label>Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
-      <div class="form-group"><label>Password</label><input type="password" id="signupPassword" placeholder="at least 6 characters"></div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="at least 6 characters" oninput="checkPwMatch()">
+      </div>
+      <div class="form-group">
+        <label>Confirm password</label>
+        <input type="password" id="signupPasswordConfirm" placeholder="repeat your password" oninput="checkPwMatch()">
+        <div class="pw-match-hint" id="pwMatchHint"></div>
+      </div>
       <div class="form-group">
         <label>Your native language</label>
         <select id="signupLang">
@@ -296,7 +281,7 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
         <input type="text" id="signupPin" maxlength="4" placeholder="e.g. 1234">
       </div>
       <div class="form-group">
-        <label>Teacher's email (optional — they'll get your PIN automatically)</label>
+        <label>Teacher's email (optional)</label>
         <input type="email" id="signupTeacherEmail" placeholder="teacher@email.com">
       </div>
       <button class="auth-btn" onclick="doSignup()">Create account</button>
@@ -304,11 +289,8 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     MAIN APP
-══════════════════════════════════════════════════════ -->
+<!-- MAIN APP -->
 <div id="appScreen">
-  <!-- Top bar -->
   <div class="topbar">
     <div class="topbar-left">
       <div>
@@ -321,15 +303,14 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
     </div>
   </div>
 
-  <!-- Nav tabs -->
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showTab('lesson')">📖 Lesson</button>
-    <button class="nav-tab" onclick="showTab('cards')">🃏 Cards</button>
-    <button class="nav-tab" onclick="showTab('review')">📚 Review</button>
-    <button class="nav-tab" onclick="showTab('teacher')">👩‍🏫 Teacher</button>
+    <button class="nav-tab active" onclick="showTab('lesson',this)">📖 Lesson</button>
+    <button class="nav-tab" onclick="showTab('cards',this)">🃏 Cards</button>
+    <button class="nav-tab" onclick="showTab('review',this)">📚 Review</button>
+    <button class="nav-tab" onclick="showTab('teacher',this)">👩‍🏫 Teacher</button>
   </div>
 
-  <!-- ── LESSON TAB ──────────────────────────────────── -->
+  <!-- LESSON TAB -->
   <div id="tab-lesson">
     <div class="date-row" id="dateDisplay"></div>
     <div class="stats-bar">
@@ -355,18 +336,16 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
     <div id="quizSection" style="display:none"></div>
   </div>
 
-  <!-- ── CARDS TAB ──────────────────────────────────── -->
+  <!-- CARDS TAB -->
   <div id="tab-cards" style="display:none">
-    <div class="cards-header">
-      <h2>Your vocabulary cards</h2>
-    </div>
+    <div class="cards-header"><h2>Your vocabulary cards</h2></div>
     <div class="cards-filter" id="cardsFilter">
-      <button class="filter-btn active" onclick="filterCards('all')">All</button>
-      <button class="filter-btn" onclick="filterCards('compound')">Compound words</button>
-      <button class="filter-btn" onclick="filterCards('vocab')">Vocabulary</button>
-      <button class="filter-btn" onclick="filterCards('review')">Review again</button>
+      <button class="filter-btn active" onclick="filterCards('all',this)">All</button>
+      <button class="filter-btn" onclick="filterCards('compound',this)">Compound words</button>
+      <button class="filter-btn" onclick="filterCards('vocab',this)">Vocabulary</button>
+      <button class="filter-btn" onclick="filterCards('review',this)">Review again</button>
     </div>
-    <div class="cards-progress" id="cardsProgress" style="margin-top:0.8rem;">
+    <div class="cards-progress" style="margin-top:0.8rem;">
       <div class="cards-progress-bar"><div class="cards-progress-fill" id="cardsProgressFill" style="width:0%"></div></div>
       <div class="cards-progress-txt"><span id="cardsProgressTxt">0 reviewed</span><span id="cardsProgressTotal">0 total</span></div>
     </div>
@@ -375,12 +354,12 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
     </div>
   </div>
 
-  <!-- ── REVIEW TAB ──────────────────────────────────── -->
+  <!-- REVIEW TAB -->
   <div id="tab-review" style="display:none">
     <div id="reviewList"><p class="no-cards-msg" style="padding:2rem 0">Complete your first lesson to see your history!</p></div>
   </div>
 
-  <!-- ── TEACHER TAB ─────────────────────────────────── -->
+  <!-- TEACHER TAB -->
   <div id="tab-teacher" style="display:none">
     <div class="teacher-login" id="teacherLogin">
       <p>Enter the student's 4-digit teacher PIN</p>
@@ -406,46 +385,52 @@ footer{text-align:center;padding:1.5rem 0;font-size:0.75rem;color:var(--ink-fain
 </div>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   STATE
-══════════════════════════════════════════════════════ */
-let currentUser = null;   // Firebase user
-let profile = {};         // Firestore profile
+/* ══ STATE ══ */
+let currentUser = null;
+let profile = {};
 let currentSentence = null;
 let currentLevel = 'principiante';
 let currentNativeLang = 'it';
 let activeTab = 'lesson';
 let teacherUnlocked = false;
+let activeFilter = 'all';
 
-// Local state (also saved to Firestore)
 let state = {
-  totalSentences: 0,
-  streak: 0,
-  lastDate: '',
-  quizCorrect: 0,
-  sessions: [],       // {date, english, translation, grammarConcept, quizResult, compoundWord}
-  cards: [],          // {id, type, term, back, cat, reviewed, needsReview, addedAt}
-  themeId: 1,
-  sessionInTheme: 0,
-  grammarLevel: 1,
-  usedCompoundWords: [],
-  teacherPin: '0000',
+  totalSentences:0, streak:0, lastDate:'', quizCorrect:0,
+  sessions:[], cards:[],
+  themeId:1, sessionInTheme:0, grammarLevel:1, usedCompoundWords:[],
+  teacherPin:'0000',
 };
 
-/* ══════════════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════════════ */
+/* ══ HELPERS ══ */
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-/* ══════════════════════════════════════════════════════
-   FIREBASE AUTH
-══════════════════════════════════════════════════════ */
+/* ══ PASSWORD MATCH CHECK ══ */
+function checkPwMatch(){
+  const p1=document.getElementById('signupPassword').value;
+  const p2=document.getElementById('signupPasswordConfirm').value;
+  const hint=document.getElementById('pwMatchHint');
+  const c2=document.getElementById('signupPasswordConfirm');
+  if(!p2){hint.className='pw-match-hint';c2.className='';return;}
+  if(p1===p2){
+    hint.className='pw-match-hint ok';hint.textContent='✓ Passwords match';
+    c2.className='input-ok';
+  }else{
+    hint.className='pw-match-hint no';hint.textContent='✗ Passwords do not match';
+    c2.className='input-error';
+  }
+}
+
+/* ══ FIREBASE AUTH — compat API ══
+   With compat, call methods directly on the auth/db objects.
+   No need to pass auth as first argument.
+*/
 function switchAuthTab(tab){
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
   event.currentTarget.classList.add('active');
-  document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
-  document.getElementById('signupForm').style.display = tab==='signup'?'block':'none';
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('signupForm').style.display=tab==='signup'?'block':'none';
   document.getElementById('authError').style.display='none';
 }
 
@@ -455,21 +440,24 @@ function showAuthError(msg){
 }
 
 async function doSignup(){
-  const fb=window._fb;
   const name=document.getElementById('signupName').value.trim();
   const email=document.getElementById('signupEmail').value.trim();
   const pass=document.getElementById('signupPassword').value;
+  const passConfirm=document.getElementById('signupPasswordConfirm').value;
   const lang=document.getElementById('signupLang').value;
   const level=document.getElementById('signupLevel').value;
   const teacherEmail=document.getElementById('signupTeacherEmail').value.trim();
   const pin=document.getElementById('signupPin').value.padStart(4,'0');
+
   if(!name||!email||!pass){return showAuthError('Please fill in all fields.');}
   if(pass.length<6){return showAuthError('Password must be at least 6 characters.');}
+  if(pass!==passConfirm){return showAuthError('Passwords do not match.');}
+
   try{
-    const cred=await fb.createUserWithEmailAndPassword(fb.auth,email,pass);
+    // compat: createUserWithEmailAndPassword is a method on window._auth
+    const cred = await window._auth.createUserWithEmailAndPassword(email, pass);
     const newState={...state,teacherPin:pin};
-    await fb.setDoc(fb.doc(fb.db,'users',cred.user.uid),{name,lang,level,teacherEmail,state:newState});
-    // Notify teacher by email
+    await window._db.collection('users').doc(cred.user.uid).set({name,lang,level,teacherEmail,state:newState});
     if(teacherEmail){
       await fetch('/api/notify',{
         method:'POST',
@@ -481,44 +469,37 @@ async function doSignup(){
 }
 
 async function doLogin(){
-  const fb=window._fb;
   const email=document.getElementById('loginEmail').value.trim();
   const pass=document.getElementById('loginPassword').value;
   try{
-    await fb.signInWithEmailAndPassword(fb.auth,email,pass);
+    // compat: signInWithEmailAndPassword is a method on window._auth
+    await window._auth.signInWithEmailAndPassword(email, pass);
   }catch(e){showAuthError('Incorrect email or password.');}
 }
 
 function doLogout(){
-  const fb=window._fb;
-  fb.signOut(fb.auth);
+  window._auth.signOut();
 }
 
-// Auth state listener — boots the app when signed in
-window.addEventListener('load',()=>{
-  // Wait for Firebase module to load
-  setTimeout(()=>{
-    const fb=window._fb;
-    if(!fb){console.error('Firebase not loaded');return;}
-    fb.onAuthStateChanged(fb.auth, async (user)=>{
-      if(user){
-        currentUser=user;
-        // Load profile from Firestore
-        const snap=await fb.getDoc(fb.doc(fb.db,'users',user.uid));
-        if(snap.exists()){
-          profile=snap.data();
-          state={...state,...profile.state};
-          currentNativeLang=profile.lang||'it';
-          currentLevel=profile.level||'principiante';
-        }
-        bootApp();
-      }else{
-        currentUser=null;
-        document.getElementById('authScreen').style.display='flex';
-        document.getElementById('appScreen').style.display='none';
+// Boot: listen for auth state changes
+window.addEventListener('load', ()=>{
+  window._auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      currentUser=user;
+      const snap = await window._db.collection('users').doc(user.uid).get();
+      if(snap.exists){
+        profile=snap.data();
+        state={...state,...(profile.state||{})};
+        currentNativeLang=profile.lang||'it';
+        currentLevel=profile.level||'principiante';
       }
-    });
-  },500);
+      bootApp();
+    }else{
+      currentUser=null;
+      document.getElementById('authScreen').style.display='flex';
+      document.getElementById('appScreen').style.display='none';
+    }
+  });
 });
 
 function bootApp(){
@@ -532,38 +513,19 @@ function bootApp(){
   getNewSentence();
 }
 
-/* ══════════════════════════════════════════════════════
-   PERSIST STATE TO FIRESTORE
-══════════════════════════════════════════════════════ */
+/* ══ PERSIST ══ */
 async function saveState(){
   if(!currentUser)return;
-  const fb=window._fb;
   try{
-    await fb.updateDoc(fb.doc(fb.db,'users',currentUser.uid),{state});
+    await window._db.collection('users').doc(currentUser.uid).update({state});
   }catch(e){console.error('Save error',e);}
 }
 
-/* ══════════════════════════════════════════════════════
-   LANGUAGE SELECTOR
-══════════════════════════════════════════════════════ */
-async function changeLang(lang){
-  currentNativeLang=lang;
-  // Update profile lang in Firestore
-  if(currentUser){
-    const fb=window._fb;
-    await fb.updateDoc(fb.doc(fb.db,'users',currentUser.uid),{lang});
-  }
-  // Reload a new sentence in the new language
-  getNewSentence();
-}
-
-/* ══════════════════════════════════════════════════════
-   TABS
-══════════════════════════════════════════════════════ */
-function showTab(tab){
+/* ══ TABS ══ */
+function showTab(tab, btn){
   activeTab=tab;
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if(btn) btn.classList.add('active');
   ['lesson','cards','review','teacher'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
@@ -572,14 +534,10 @@ function showTab(tab){
   if(tab==='teacher'){teacherUnlocked=false;document.getElementById('teacherLogin').style.display='block';document.getElementById('teacherContent').style.display='none';}
 }
 
-/* ══════════════════════════════════════════════════════
-   LESSON TAB
-══════════════════════════════════════════════════════ */
+/* ══ LESSON ══ */
 function setDateDisplay(){
-  const now=new Date();
-  document.getElementById('dateDisplay').textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('dateDisplay').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
-
 function checkStreak(){
   const today=new Date().toDateString();
   if(state.lastDate!==today){
@@ -588,18 +546,13 @@ function checkStreak(){
     state.lastDate=today;
   }
 }
-
 function updateStats(){
   document.getElementById('statTotal').textContent=state.totalSentences||0;
   document.getElementById('statStreak').textContent=state.streak||0;
   document.getElementById('statQuiz').textContent=state.quizCorrect||0;
   document.getElementById('statCards').textContent=(state.cards||[]).length;
 }
-
-function setLevel(lvl){
-  currentLevel=lvl;
-  setLevelUI(lvl);
-}
+function setLevel(lvl){currentLevel=lvl;setLevelUI(lvl);}
 function setLevelUI(lvl){
   document.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('active'));
   if(lvl==='principiante') document.getElementById('lvlA').classList.add('active');
@@ -617,90 +570,65 @@ async function getNewSentence(){
   document.getElementById('compoundSection').style.display='none';
   document.getElementById('errorMsg').style.display='none';
   card.innerHTML=`<div class="loading-card"><div class="spinner"></div><div class="loading-text">Preparing your lesson…</div></div>`;
-
   try{
     const res=await fetch('/api/sentence',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        level:currentLevel,
-        nativeLang:currentNativeLang,
-        themeId:state.themeId||1,
-        sessionInTheme:state.sessionInTheme||0,
-        grammarLevel:state.grammarLevel||1,
-        usedCompoundWords:state.usedCompoundWords||[],
-      }),
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({level:currentLevel,nativeLang:currentNativeLang,themeId:state.themeId||1,sessionInTheme:state.sessionInTheme||0,grammarLevel:state.grammarLevel||1,usedCompoundWords:state.usedCompoundWords||[]}),
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error||'API error');}
     currentSentence=await res.json();
     renderSentence(currentSentence);
-    // Update curriculum progress
     state.sessionInTheme=(state.sessionInTheme||0)+1;
     if(state.sessionInTheme>=12){state.sessionInTheme=0;state.themeId=((state.themeId||1)%5)+1;}
     state.grammarLevel=Math.min(6,Math.floor((state.totalSentences||0)/4)+1);
     state.totalSentences=(state.totalSentences||0)+1;
     if(currentSentence.compoundWord) state.usedCompoundWords=[...new Set([...(state.usedCompoundWords||[]),currentSentence.compoundWord.word])];
-    // Save session
-    state.sessions=[...((state.sessions||[]).slice(-200)),{
-      timestamp:Date.now(),
-      english:currentSentence.english,
-      translation:currentSentence.translation,
-      grammarConcept:currentSentence.grammarConcept,
-      quizResult:null,
-      compoundWord:currentSentence.compoundWord?.word||null,
-    }];
-    // Add vocab cards
+    state.sessions=[...((state.sessions||[]).slice(-200)),{timestamp:Date.now(),english:currentSentence.english,translation:currentSentence.translation,grammarConcept:currentSentence.grammarConcept,quizResult:null,compoundWord:currentSentence.compoundWord?.word||null}];
     addVocabCards(currentSentence);
     updateStats();
     await saveState();
   }catch(e){
     card.innerHTML='';
     const err=document.getElementById('errorMsg');
-    err.textContent='Error: '+(e.message||'Something went wrong. Try again.');
+    err.textContent='Error: '+(e.message||'Something went wrong.');
     err.style.display='block';
-    console.error(e);
   }
   btn.disabled=false;
 }
 
 function renderSentence(s){
-  // Highlight compound word in sentence
   let highlighted=escHtml(s.english);
   if(s.compoundWord?.word){
-    const re=new RegExp(`(${s.compoundWord.word})`, 'gi');
+    const re=new RegExp(`(${s.compoundWord.word})`,'gi');
     highlighted=highlighted.replace(re,'<span class="compound-highlight">$1</span>');
   }
-  document.getElementById('mainCard').innerHTML=`
-    <div class="fade-in">
-      <div class="sentence-en">${highlighted}</div>
-      <div class="phonetic">🔊 ${escHtml(s.phonetic||'')}</div>
-      <div class="sentence-native">${escHtml(s.translation||s.italian||'')}</div>
-      <span class="grammar-badge">${escHtml(s.grammarConcept||'')}</span>
-      <div class="tip-text">${escHtml(s.tip||'')}</div>
-      ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><span>${escHtml(v.en)}</span> → ${escHtml(v.native||v.it||'')}</div>`).join('')}</div>`:''}
-      <button class="listen-btn" onclick="speak(${JSON.stringify(s.english).replace(/"/g,'&quot;')})">🔊 Listen</button>
-    </div>`;
-  // Compound card
+  document.getElementById('mainCard').innerHTML=`<div class="fade-in">
+    <div class="sentence-en">${highlighted}</div>
+    <div class="phonetic">🔊 ${escHtml(s.phonetic||'')}</div>
+    <div class="sentence-native">${escHtml(s.translation||'')}</div>
+    <span class="grammar-badge">${escHtml(s.grammarConcept||'')}</span>
+    <div class="tip-text">${escHtml(s.tip||'')}</div>
+    ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><span>${escHtml(v.en)}</span> → ${escHtml(v.native||v.it||'')}</div>`).join('')}</div>`:''}
+    <button class="listen-btn" onclick="speak(${JSON.stringify(s.english).replace(/"/g,'&quot;')})">🔊 Listen</button>
+  </div>`;
   if(s.compoundWord){
     const c=s.compoundWord;
     document.getElementById('compoundSection').style.display='block';
-    document.getElementById('compoundSection').innerHTML=`
-      <div class="compound-card fade-in">
-        <div class="compound-label">🧩 Compound word</div>
-        <div class="compound-parts">
-          <div class="compound-part">${escHtml(c.part1)} <small style="font-size:0.65rem;color:var(--ink-faint);display:block">${escHtml(c.meaning1)}</small></div>
-          <span class="compound-plus">+</span>
-          <div class="compound-part">${escHtml(c.part2)} <small style="font-size:0.65rem;color:var(--ink-faint);display:block">${escHtml(c.meaning2)}</small></div>
-          <span class="compound-eq">=</span>
-          <span class="compound-q">?</span>
-        </div>
-        <div class="compound-hint">${escHtml(c.hint)}</div>
-        <button class="reveal-btn" onclick="revealCompound()">Reveal answer</button>
-        <div class="compound-revealed" id="compoundRevealed">
-          <div class="compound-answer">✦ ${escHtml(c.word)} = ${escHtml(c.combined)}</div>
-          <div class="compound-explain">${escHtml(c.explanation)}</div>
-        </div>
-      </div>`;
+    document.getElementById('compoundSection').innerHTML=`<div class="compound-card fade-in">
+      <div class="compound-label">🧩 Compound word</div>
+      <div class="compound-parts">
+        <div class="compound-part">${escHtml(c.part1)}<small style="font-size:0.65rem;color:var(--ink-faint);display:block">${escHtml(c.meaning1)}</small></div>
+        <span class="compound-plus">+</span>
+        <div class="compound-part">${escHtml(c.part2)}<small style="font-size:0.65rem;color:var(--ink-faint);display:block">${escHtml(c.meaning2)}</small></div>
+        <span class="compound-eq">=</span><span class="compound-q">?</span>
+      </div>
+      <div class="compound-hint">${escHtml(c.hint)}</div>
+      <button class="reveal-btn" onclick="revealCompound()">Reveal answer</button>
+      <div class="compound-revealed" id="compoundRevealed">
+        <div class="compound-answer">✦ ${escHtml(c.word)} = ${escHtml(c.combined)}</div>
+        <div class="compound-explain">${escHtml(c.explanation)}</div>
+      </div>
+    </div>`;
   }
   document.getElementById('quizBtn').style.display='block';
 }
@@ -721,94 +649,55 @@ function speak(text){
   window.speechSynthesis.speak(u);
 }
 
-/* ── QUIZ ────────────────────────────────────────────── */
 function toggleQuiz(){
   const sec=document.getElementById('quizSection');
-  if(sec.style.display==='none'){
-    renderQuiz(currentSentence);
-    sec.style.display='block';
-    document.getElementById('quizBtn').textContent='✕ Close quiz';
-  }else{
-    sec.style.display='none';
-    document.getElementById('quizBtn').textContent='📝 Quiz';
-  }
+  if(sec.style.display==='none'){renderQuiz(currentSentence);sec.style.display='block';document.getElementById('quizBtn').textContent='✕ Close quiz';}
+  else{sec.style.display='none';document.getElementById('quizBtn').textContent='📝 Quiz';}
 }
-
 function renderQuiz(s){
   if(!s)return;
   const sec=document.getElementById('quizSection');
-  const opts=shuffle([
-    {t:s.quizCorrect,c:true},{t:s.quizWrong1,c:false},{t:s.quizWrong2,c:false},{t:s.quizWrong3,c:false}
-  ]);
+  const opts=shuffle([{t:s.quizCorrect,c:true},{t:s.quizWrong1,c:false},{t:s.quizWrong2,c:false},{t:s.quizWrong3,c:false}]);
   sec.innerHTML=`<div class="quiz-card fade-in">
     <div class="quiz-title">🧩 ${escHtml(s.quizQuestion||'What does the highlighted word mean?')}</div>
     <div class="quiz-options">${opts.map((o,i)=>`<button class="quiz-option" onclick="checkAnswer(this,${o.c})" data-correct="${o.c}">${String.fromCharCode(65+i)}. ${escHtml(o.t)}</button>`).join('')}</div>
     <div id="quizFeedback"></div>
   </div>`;
 }
-
 function checkAnswer(btn,correct){
   document.querySelectorAll('.quiz-option').forEach(b=>b.disabled=true);
   document.querySelectorAll('.quiz-option[data-correct="true"]').forEach(b=>b.classList.add('correct'));
   const fb=document.getElementById('quizFeedback');
-  if(correct){
-    btn.classList.add('correct');
-    fb.className='quiz-feedback ok';
-    fb.textContent='✓ Correct!';
-    state.quizCorrect=(state.quizCorrect||0)+1;
-  }else{
-    btn.classList.add('wrong');
-    fb.className='quiz-feedback no';
-    fb.textContent='✗ Not quite — see the correct answer in green.';
-  }
-  // Update last session quiz result
+  if(correct){btn.classList.add('correct');fb.className='quiz-feedback ok';fb.textContent='✓ Correct!';state.quizCorrect=(state.quizCorrect||0)+1;}
+  else{btn.classList.add('wrong');fb.className='quiz-feedback no';fb.textContent='✗ Not quite — see the correct answer in green.';}
   if(state.sessions.length){state.sessions[state.sessions.length-1].quizResult=correct?'correct':'wrong';}
-  updateStats();
-  saveState();
+  updateStats();saveState();
 }
 
-/* ══════════════════════════════════════════════════════
-   FLIP CARDS TAB
-══════════════════════════════════════════════════════ */
+/* ══ FLIP CARDS ══ */
 function addVocabCards(s){
   if(!s)return;
-  // Compound word card
   if(s.compoundWord){
-    const c=s.compoundWord;
-    const id='cw_'+c.word;
+    const c=s.compoundWord;const id='cw_'+c.word;
     if(!(state.cards||[]).find(x=>x.id===id)){
-      state.cards=[...(state.cards||[]),{
-        id,type:'compound',cat:'compound',
-        term:c.word,
-        back:`<strong>${c.part1}</strong> (${c.meaning1}) + <strong>${c.part2}</strong> (${c.meaning2})<br><br>= ${c.combined}<br><br><em>${c.explanation}</em>`,
-        reviewed:false,needsReview:false,addedAt:Date.now()
-      }];
+      state.cards=[...(state.cards||[]),{id,type:'compound',cat:'compound',term:c.word,back:`<strong>${c.part1}</strong> (${c.meaning1}) + <strong>${c.part2}</strong> (${c.meaning2})<br><br>= ${c.combined}<br><br><em>${c.explanation}</em>`,reviewed:false,needsReview:false,addedAt:Date.now()}];
     }
   }
-  // Vocab cards
   if(s.vocab){
     s.vocab.forEach(v=>{
       const id='vc_'+v.en.replace(/\s/g,'_');
       if(!(state.cards||[]).find(x=>x.id===id)){
-        state.cards=[...(state.cards||[]),{
-          id,type:'vocab',cat:'vocab',
-          term:v.en,
-          back:v.native||v.it||'',
-          reviewed:false,needsReview:false,addedAt:Date.now()
-        }];
+        state.cards=[...(state.cards||[]),{id,type:'vocab',cat:'vocab',term:v.en,back:v.native||v.it||'',reviewed:false,needsReview:false,addedAt:Date.now()}];
       }
     });
   }
 }
-
-let activeFilter='all';
-function filterCards(f){
+function filterCards(f,btn){
   activeFilter=f;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if(btn) btn.classList.add('active');
   renderCards();
 }
-
 function renderCards(){
   const cards=state.cards||[];
   const grid=document.getElementById('flipGrid');
@@ -816,55 +705,37 @@ function renderCards(){
   if(activeFilter==='compound') filtered=cards.filter(c=>c.cat==='compound');
   else if(activeFilter==='vocab') filtered=cards.filter(c=>c.cat==='vocab');
   else if(activeFilter==='review') filtered=cards.filter(c=>c.needsReview);
-
-  // Update progress bar
   const reviewed=cards.filter(c=>c.reviewed).length;
   document.getElementById('cardsProgressFill').style.width=cards.length?`${Math.round(reviewed/cards.length*100)}%`:'0%';
   document.getElementById('cardsProgressTxt').textContent=`${reviewed} reviewed`;
   document.getElementById('cardsProgressTotal').textContent=`${cards.length} total`;
-
-  if(!filtered.length){
-    grid.innerHTML=`<p class="no-cards-msg">${activeFilter==='review'?'No cards marked for review — great work!':'Complete a lesson to add cards here.'}</p>`;
-    return;
-  }
+  if(!filtered.length){grid.innerHTML=`<p class="no-cards-msg">${activeFilter==='review'?'No cards marked for review — great work!':'Complete a lesson to add cards here.'}</p>`;return;}
   grid.innerHTML=filtered.map(c=>`
     <div class="flip-card-wrap${c.reviewed?' done':''}" id="fc_${c.id}" onclick="flipCard('${c.id}')">
       <div class="flip-card-inner">
         <div class="flip-face flip-front">
-          <div class="flip-front-top">
-            <span class="flip-cat">${c.cat==='compound'?'Compound word':'Vocabulary'}</span>
-            <span class="flip-reviewed">✓ Seen</span>
-          </div>
-          <div class="flip-front-body">
-            <div class="flip-term">${escHtml(c.term)}</div>
-            <div class="flip-hint">Tap to flip</div>
-          </div>
+          <div class="flip-front-top"><span class="flip-cat">${c.cat==='compound'?'Compound word':'Vocabulary'}</span><span class="flip-reviewed">✓ Seen</span></div>
+          <div class="flip-front-body"><div class="flip-term">${escHtml(c.term)}</div><div class="flip-hint">Tap to flip</div></div>
         </div>
         <div class="flip-face flip-back">
           <div class="flip-back-top"><span class="flip-back-label">Answer</span></div>
           <div class="flip-back-body">${c.back}</div>
-          <div class="flip-back-foot">
-            <div class="spaced-btns">
-              <button class="spaced-btn know" onclick="markCard(event,'${c.id}',false)">✓ Know it</button>
-              <button class="spaced-btn review" onclick="markCard(event,'${c.id}',true)">↩ Review again</button>
-            </div>
-          </div>
+          <div class="flip-back-foot"><div class="spaced-btns">
+            <button class="spaced-btn know" onclick="markCard(event,'${c.id}',false)">✓ Know it</button>
+            <button class="spaced-btn review" onclick="markCard(event,'${c.id}',true)">↩ Review again</button>
+          </div></div>
         </div>
       </div>
     </div>`).join('');
 }
-
 function flipCard(id){
   const el=document.getElementById('fc_'+id);
   if(!el)return;
-  // Close others
   document.querySelectorAll('.flip-card-wrap.flipped').forEach(c=>{if(c.id!=='fc_'+id)c.classList.remove('flipped');});
   el.classList.toggle('flipped');
-  // Mark as reviewed
   const card=(state.cards||[]).find(c=>c.id===id);
   if(card&&!card.reviewed){card.reviewed=true;saveState();}
 }
-
 function markCard(e,id,needsReview){
   e.stopPropagation();
   const card=(state.cards||[]).find(c=>c.id===id);
@@ -872,14 +743,11 @@ function markCard(e,id,needsReview){
   const el=document.getElementById('fc_'+id);
   if(el){el.classList.remove('flipped');el.classList.add('done');}
   saveState();
-  // Refresh if on review filter
   if(activeFilter==='review') setTimeout(()=>renderCards(),300);
   else document.getElementById('cardsProgressFill').style.width=`${Math.round((state.cards||[]).filter(c=>c.reviewed).length/(state.cards||[]).length*100)}%`;
 }
 
-/* ══════════════════════════════════════════════════════
-   REVIEW TAB
-══════════════════════════════════════════════════════ */
+/* ══ REVIEW ══ */
 function renderReview(){
   const sessions=state.sessions||[];
   const list=document.getElementById('reviewList');
@@ -887,38 +755,31 @@ function renderReview(){
   const byDate={};
   sessions.slice().reverse().forEach(s=>{
     const d=new Date(s.timestamp).toLocaleDateString('en-GB',{weekday:'short',month:'short',day:'numeric'});
-    if(!byDate[d]){byDate[d]={date:d,items:[]};}
+    if(!byDate[d]) byDate[d]={date:d,items:[]};
     byDate[d].items.push(s);
   });
   list.innerHTML=Object.entries(byDate).map(([d,g])=>`
     <div class="review-day" onclick="this.classList.toggle('open')">
       <div class="review-day-header">
         <div class="review-day-title">${escHtml(d)}</div>
-        <div style="display:flex;gap:0.5rem;align-items:center">
-          <div class="review-day-count">${g.items.length}</div>
-          <div class="review-day-toggle">▼</div>
-        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center"><div class="review-day-count">${g.items.length}</div><div class="review-day-toggle">▼</div></div>
       </div>
       <div class="review-day-content">
-        ${g.items.map(s=>`
-          <div class="review-item">
-            <div class="review-en">${escHtml(s.english)}</div>
-            <div class="review-native">${escHtml(s.translation)}</div>
-            <span class="review-tag">${escHtml(s.grammarConcept)}</span>
-            ${s.quizResult?`<span class="review-tag" style="margin-left:0.3rem;background:${s.quizResult==='correct'?'rgba(122,158,126,0.15)':'rgba(201,64,64,0.1)'};color:${s.quizResult==='correct'?'var(--sage)':'#C94040'}">${s.quizResult==='correct'?'✓ Quiz correct':'✗ Quiz wrong'}</span>`:''}
-          </div>`).join('')}
+        ${g.items.map(s=>`<div class="review-item">
+          <div class="review-en">${escHtml(s.english)}</div>
+          <div class="review-native">${escHtml(s.translation)}</div>
+          <span class="review-tag">${escHtml(s.grammarConcept)}</span>
+          ${s.quizResult?`<span class="review-tag" style="margin-left:0.3rem;background:${s.quizResult==='correct'?'rgba(122,158,126,0.15)':'rgba(201,64,64,0.1)'};color:${s.quizResult==='correct'?'var(--sage)':'#C94040'}">${s.quizResult==='correct'?'✓ Quiz correct':'✗ Quiz wrong'}</span>`:''}
+        </div>`).join('')}
       </div>
     </div>`).join('');
 }
 
-/* ══════════════════════════════════════════════════════
-   TEACHER TAB
-══════════════════════════════════════════════════════ */
+/* ══ TEACHER ══ */
 function pinNext(el,nextId){
   el.value=el.value.toString().slice(-1);
   if(el.value) document.getElementById(nextId)?.focus();
 }
-
 function checkPin(){
   const pin=['pin1','pin2','pin3','pin4'].map(id=>document.getElementById(id).value).join('');
   if(pin.length===4){
@@ -928,23 +789,19 @@ function checkPin(){
       document.getElementById('teacherLogin').style.display='none';
       document.getElementById('teacherContent').style.display='block';
       renderTeacherDashboard();
-    }else{
-      document.getElementById('pinError').style.display='block';
-    }
+    }else{document.getElementById('pinError').style.display='block';}
   }
 }
-
 function renderTeacherDashboard(){
-  const s=state;
-  const sessions=s.sessions||[];
+  const sessions=state.sessions||[];
   const quizTotal=sessions.filter(x=>x.quizResult).length;
   const quizRight=sessions.filter(x=>x.quizResult==='correct').length;
   const pct=quizTotal?Math.round(quizRight/quizTotal*100):0;
   document.getElementById('teacherStats').innerHTML=`
-    <div class="t-stat"><span class="t-stat-num">${s.totalSentences||0}</span><span class="t-stat-lbl">Lessons done</span></div>
-    <div class="t-stat"><span class="t-stat-num">${s.streak||0}🔥</span><span class="t-stat-lbl">Day streak</span></div>
+    <div class="t-stat"><span class="t-stat-num">${state.totalSentences||0}</span><span class="t-stat-lbl">Lessons done</span></div>
+    <div class="t-stat"><span class="t-stat-num">${state.streak||0}🔥</span><span class="t-stat-lbl">Day streak</span></div>
     <div class="t-stat"><span class="t-stat-num">${pct}%</span><span class="t-stat-lbl">Quiz accuracy</span></div>
-    <div class="t-stat"><span class="t-stat-num">${(s.cards||[]).length}</span><span class="t-stat-lbl">Cards collected</span></div>`;
+    <div class="t-stat"><span class="t-stat-num">${(state.cards||[]).length}</span><span class="t-stat-lbl">Cards collected</span></div>`;
   const hist=document.getElementById('teacherHistory');
   if(!sessions.length){hist.innerHTML='<p style="color:var(--ink-faint);font-size:0.85rem">No sessions yet.</p>';return;}
   const byDate={};
@@ -964,16 +821,14 @@ function renderTeacherDashboard(){
       </div>
     </div>`).join('');
 }
-
 function copyReport(){
-  const s=state;
-  const sessions=s.sessions||[];
+  const sessions=state.sessions||[];
   const recent=sessions.slice(-7);
   const quizRight=recent.filter(x=>x.quizResult==='correct').length;
   const quizTotal=recent.filter(x=>x.quizResult).length;
   const compounds=[...new Set(recent.filter(x=>x.compoundWord).map(x=>x.compoundWord))];
-  const text=`📊 English Daily — Progress Report\n👤 ${profile.name||'Student'}\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n📚 Total lessons: ${s.totalSentences||0}\n🔥 Streak: ${s.streak||0} days\n✅ Quiz (last 7): ${quizRight}/${quizTotal}\n🧩 Cards collected: ${(s.cards||[]).length}\n${compounds.length?'\n📝 Recent compound words:\n'+compounds.map(c=>'• '+c).join('\n'):''}`;
-  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!')).catch(()=>prompt('Copy this report:',text));
+  const text=`📊 English Daily — Progress Report\n👤 ${profile.name||'Student'}\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n📚 Total lessons: ${state.totalSentences||0}\n🔥 Streak: ${state.streak||0} days\n✅ Quiz (last 7): ${quizRight}/${quizTotal}\n🧩 Cards collected: ${(state.cards||[]).length}\n${compounds.length?'\n📝 Recent compound words:\n'+compounds.map(c=>'• '+c).join('\n'):''}`;
+  navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>prompt('Copy this:',text));
 }
 </script>
 </body>
