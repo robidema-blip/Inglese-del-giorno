@@ -1,93 +1,95 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  const {
-    level = 'principiante',
-    themeId = 'caffe',
-    grammarLevel = 1,
-    sessionInTheme = 0,
-    usedCompoundWords = [],
-  } = req.body;
+  const { level, nativeLang = 'it', themeId = 1, sessionInTheme = 0, grammarLevel = 1, usedCompoundWords = [] } = req.body;
+
+  // Language name map for the prompt
+  const langNames = {
+    it: 'Italian',
+    es: 'Spanish',
+    fr: 'French',
+    pt: 'Portuguese',
+    de: 'German',
+    zh: 'Chinese (Simplified)',
+    ko: 'Korean',
+    ja: 'Japanese',
+    ar: 'Arabic',
+    ru: 'Russian',
+    pl: 'Polish',
+    nl: 'Dutch',
+  };
+  const nativeLangName = langNames[nativeLang] || 'Italian';
 
   const themeDescs = {
-    caffe:        'ordering and enjoying coffee at an Italian-style cafe in Britain (menus, ordering, paying, sitting down, the coffee itself)',
-    supermercato: 'shopping at a British supermarket (finding items, reading labels, asking for help, checking out, prices)',
-    farmacia:     'visiting a British pharmacy or chemist (asking for medicine, describing symptoms, reading instructions)',
-    trasporti:    'using British public transport (asking for directions, buying tickets, bus/train/tube)',
-    ristorante:   'dining at a British restaurant (booking a table, ordering food, complaining politely, paying the bill)',
+    1: 'café / coffee shop: ordering drinks, reading a menu, chatting with a barista',
+    2: 'supermarket: finding products, checking prices, using a self-checkout',
+    3: 'pharmacy / chemist: asking for medicine, describing symptoms, reading labels',
+    4: 'transport: buying tickets, asking for directions, using public transit',
+    5: 'restaurant: booking a table, ordering food, paying the bill',
   };
 
   const grammarDescs = {
-    1: 'simple present tense: "I want", "I like", "The cafe has...", "It opens at...". Focus on affirmative statements.',
-    2: 'polite requests: "I would like...", "Could I have...?", "Can I have...?". Explain that "would like" is more polite than "want".',
-    3: 'questions: "Where is...?", "How much does it cost?", "What time...?", "Which one...?". Focus on question word order.',
-    4: 'present continuous: "I am waiting", "She is ordering", "They are sitting". Contrast with simple present.',
-    5: 'past simple: "I went", "I had", "It was", "We ordered". Focus on irregular verbs common in this context.',
-    6: 'future plans: "I will have...", "I am going to try...", "Shall we...?". Introduce both "will" and "going to".',
+    1: 'present simple: "I want", "She works", "Do you have...?"',
+    2: 'polite requests: "I would like...", "Could I have...?", "Can I have...?"',
+    3: 'questions: "Where is...?", "How much does it cost?", "What time...?"',
+    4: 'present continuous: "I am waiting", "She is ordering", "They are sitting"',
+    5: 'past simple: "I went", "I had", "It was", "We ordered"',
+    6: 'future: "I will have...", "I am going to try...", "Shall we...?"',
   };
 
   const levelDescs = {
-    principiante: 'A1-A2: very short sentence, maximum 8 words, only common vocabulary, no contractions',
-    intermedio:   'B1-B2: natural sentence of 10-14 words, everyday vocabulary, some contractions fine',
-    avanzato:     'C1: natural flowing sentence, idiomatic language, up to 18 words',
+    principiante: 'A1-A2: very short sentence, max 8 words, common vocabulary only',
+    intermedio: 'B1-B2: natural sentence 10-14 words, everyday vocabulary',
+    avanzato: 'C1: natural flowing sentence, idiomatic language, up to 18 words',
   };
 
   const usedList = usedCompoundWords.length ? usedCompoundWords.join(', ') : 'none yet';
 
-  const prompt = `You are a structured English curriculum designer for Italian adult learners. Generate ONE lesson entry.
+  const prompt = `You are a structured English curriculum designer for ${nativeLangName} speakers learning English. Generate ONE lesson entry.
 
 CURRICULUM CONTEXT:
-- Theme: ${themeDescs[themeId] || themeDescs.caffe}
-- Session ${sessionInTheme + 1} within this theme (make the situation slightly different each session)
+- Theme: ${themeDescs[themeId] || themeDescs[1]}
+- Session ${sessionInTheme + 1} within this theme (vary the scenario each session)
 - Grammar focus: ${grammarDescs[grammarLevel] || grammarDescs[1]}
 - Student level: ${levelDescs[level] || levelDescs.principiante}
 - Compound words already used (DO NOT repeat): ${usedList}
 
-MOST IMPORTANT RULE — NATURAL SENTENCES:
-Write a sentence that a real person would actually say in real life in this situation. The sentence must make complete common sense. Do not construct an unusual or contrived situation just to include a compound word.
-
 COMPOUND WORD RULES:
-- First write a realistic sentence, THEN find a compound word that fits naturally into it
-- GOOD examples: "I need a teaspoon to stir my coffee." / "Is this a takeaway or eat in?" / "The cafe is open all afternoon."
-- BAD examples: "I want an espresso with a tablecloth." / "I would like a milkshake with my croissant." — these are unnatural
-- The compound word must appear in the sentence without making it sound odd
-- Safe options by theme:
-  cafe: teaspoon, teabag, takeaway, lunchtime, afternoon, teacup
-  supermercato: checkout, supermarket, shopkeeper, timetable
-  farmacia: painkiller, headache, earache, toothache, sunscreen
-  trasporti: underground, timetable, footpath, crossroads, roadworks
-  ristorante: lunchtime, dinnertime, takeaway
-- Compound words already used (do not repeat): ${usedList}
+- Choose ONE compound word naturally used in the sentence
+- Both parts should be guessable by a ${nativeLangName} speaker
+- Must appear in the English sentence
 
-GRAMMAR TIP: Name and explain the grammar concept in simple Italian using the sentence as an example.
+IMPORTANT: All translations, grammar tips, phonetics, hints and explanations must be written in ${nativeLangName}, NOT in English (except for the English sentence itself and the vocabulary English words).
 
 Respond ONLY in this exact JSON. No markdown, no preamble:
 {
   "english": "The sentence here, containing the compound word.",
-  "phonetic": "Guida alla pronuncia con fonetica semplice italiana (solo le parti piu difficili)",
-  "italian": "La traduzione italiana della frase.",
-  "grammarConcept": "Nome breve del concetto (es: Presente semplice)",
-  "tip": "Spiegazione chiara della regola grammaticale in italiano, usando la frase come esempio. Max 2 frasi.",
+  "phonetic": "Pronunciation guide written in simple ${nativeLangName}-friendly phonetics for the hardest parts only",
+  "translation": "The translation in ${nativeLangName}.",
+  "grammarConcept": "Short concept name in ${nativeLangName} (e.g. 'Presente semplice')",
+  "tip": "Clear grammar rule explanation in ${nativeLangName} using the sentence as example. Max 2 sentences.",
   "vocab": [
-    {"en": "word1", "it": "parola1"},
-    {"en": "word2", "it": "parola2"},
-    {"en": "word3", "it": "parola3"}
+    {"en": "word1", "native": "translation1"},
+    {"en": "word2", "native": "translation2"},
+    {"en": "word3", "native": "translation3"}
   ],
   "compoundWord": {
-    "word": "teaspoon",
-    "part1": "tea",
-    "part2": "spoon",
-    "meaning1": "te",
-    "meaning2": "cucchiaio",
-    "combined": "cucchiaino da te",
-    "hint": "Cosa usi per mescolare lo zucchero nel caffe?",
-    "explanation": "In inglese, si uniscono due parole per crearne una nuova: tea (te) + spoon (cucchiaio) = cucchiaino!"
+    "word": "coffeehouse",
+    "part1": "coffee",
+    "part2": "house",
+    "meaning1": "${nativeLangName} meaning of part1",
+    "meaning2": "${nativeLangName} meaning of part2",
+    "combined": "${nativeLangName} meaning of the compound",
+    "hint": "A guiding question in ${nativeLangName} to help the student figure it out",
+    "explanation": "Brief ${nativeLangName} explanation of how the two parts combine"
   },
-  "quizQuestion": "Cosa significa ___ nella frase?",
-  "quizCorrect": "La risposta corretta in italiano",
-  "quizWrong1": "Risposta sbagliata plausibile 1",
-  "quizWrong2": "Risposta sbagliata plausibile 2",
-  "quizWrong3": "Risposta sbagliata plausibile 3"
+  "quizQuestion": "Quiz question in ${nativeLangName} about a key word",
+  "quizCorrect": "Correct answer in ${nativeLangName}",
+  "quizWrong1": "Plausible wrong answer 1 in ${nativeLangName}",
+  "quizWrong2": "Plausible wrong answer 2 in ${nativeLangName}",
+  "quizWrong3": "Plausible wrong answer 3 in ${nativeLangName}"
 }`;
 
   try {
@@ -100,7 +102,7 @@ Respond ONLY in this exact JSON. No markdown, no preamble:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 900,
+        max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
