@@ -3,9 +3,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { teacherEmail, studentName, studentEmail, pin, level, lang } = req.body;
+  const { teacherEmail, studentName, studentEmail, inviteCode, level, lang } = req.body;
 
-  if (!teacherEmail || !studentName || !pin) {
+  if (!teacherEmail || !studentName || !inviteCode) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -37,11 +37,13 @@ Student details:
 • Email: ${studentEmail}
 • Level: ${levelNames[level] || level}
 • Native language: ${langNames[lang] || lang}
-• Teacher PIN: ${pin}
+• Invite code: ${inviteCode}
 
-To view their progress, open the app, go to the Teacher tab, and enter the PIN above.
+To view their progress: create your own free teacher account in the app (choose
+"Teacher" when signing up), then use "Link a student" with the student's email
+above and this invite code.
 
-App: https://inglese-del-giorno.vercel.app
+App: ${process.env.APP_URL || 'https://english-daily.vercel.app'}
 
 — English Daily
   `.trim();
