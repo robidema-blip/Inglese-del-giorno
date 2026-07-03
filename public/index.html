@@ -234,6 +234,25 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .spaced-btn.again{background:rgba(193,103,74,0.1);color:var(--terra);}
 .no-cards{text-align:center;padding:3rem 1rem;color:var(--ink-faint);font-style:italic;font-family:'Lora',serif;}
 
+/* ══ TODAY'S CARDS (inline preview on the lesson page) ══════ */
+.today-cards-wrap{margin-bottom:1rem;}
+.today-cards-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;}
+.today-cards-head h3{font-family:'Playfair Display',serif;font-size:0.88rem;color:var(--ink);}
+.today-cards-link{font-size:0.75rem;color:var(--terra);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.6rem;}
+.flip-wrap.mini{height:96px;}
+.flip-wrap.mini .flip-term{font-size:0.95rem;}
+.flip-wrap.mini .flip-front-body,.flip-wrap.mini .flip-back-body{padding:0.6rem;}
+.flip-wrap.mini .flip-sub{display:none;}
+
+/* ══ SCRAMBLE / DICTATION EXERCISES ══════════════════════════ */
+.scramble-bank{display:flex;flex-wrap:wrap;gap:0.4rem;min-height:44px;padding:0.6rem;border:1.5px dashed var(--border);border-radius:10px;margin-bottom:0.8rem;}
+.scramble-answer{display:flex;flex-wrap:wrap;gap:0.4rem;min-height:44px;padding:0.6rem;border:1.5px solid var(--border);border-radius:10px;margin-bottom:0.9rem;background:var(--cream);}
+.scramble-word{padding:0.4rem 0.75rem;background:var(--warm-white);border:1.5px solid var(--border);border-radius:8px;font-family:'Lora',serif;font-size:0.9rem;cursor:pointer;transition:all 0.15s;}
+.scramble-word:hover{border-color:var(--terra);}
+.dictation-input{width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.92rem;margin-bottom:0.7rem;background:var(--warm-white);color:var(--ink);}
+.dictation-input:focus{outline:none;border-color:var(--terra);}
+
 /* review */
 .review-day{background:var(--warm-white);border:1px solid var(--border);border-radius:14px;margin-bottom:0.7rem;overflow:hidden;}
 .review-day-head{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1.1rem;cursor:pointer;}
@@ -290,6 +309,26 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .danger-btn{width:100%;padding:0.65rem;background:transparent;border:1.5px solid rgba(224,82,82,0.4);color:#c03030;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ══ LIVELIER TOUCHES ══════════════════════════════════════════
+ * CSS-only: no new dependencies, no added cost. Kept subtle on
+ * purpose so it reads as "polished", not "busy".
+ * ══════════════════════════════════════════════════════════════ */
+@keyframes statPop{0%{transform:scale(1);}35%{transform:scale(1.22);color:var(--gold);}100%{transform:scale(1);}}
+.stat-pop{animation:statPop 0.5s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes flamePulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+.streak-badge.has-streak span:first-child,.streak-badge.has-streak{animation:none;}
+.streak-flame{display:inline-block;animation:flamePulse 1.8s ease-in-out infinite;}
+@keyframes celebrateIn{from{opacity:0;transform:translateY(-8px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.celebrate-banner{background:linear-gradient(120deg,var(--terra) 0%,var(--gold) 100%);border-radius:16px;padding:1rem 1.3rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.8rem;color:#fff;box-shadow:0 6px 24px rgba(193,103,74,0.25);animation:celebrateIn 0.5s cubic-bezier(.34,1.56,.64,1) both;}
+.celebrate-icon{font-size:1.7rem;flex-shrink:0;}
+.celebrate-text strong{display:block;font-family:'Playfair Display',serif;font-size:1rem;}
+.celebrate-text span{font-size:0.8rem;opacity:0.92;}
+.celebrate-dismiss{margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:0.85rem;line-height:1;flex-shrink:0;}
+#authScreen::before{animation:authGlowDrift 12s ease-in-out infinite alternate;}
+@keyframes authGlowDrift{from{background-position:50% -10%;}to{background-position:52% -6%;}}
+.main-card,.reading-card,.quiz-card,.compound-card{animation:fadeUp 0.35s ease both;}
+.vocab-chip,.flip-wrap{animation:fadeUp 0.3s ease both;}
 .fade-in{animation:fadeUp 0.32s ease both;}
 .hidden{display:none!important;}
 </style>
@@ -408,7 +447,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
         <div class="stat-item"><span class="stat-num" id="statQuiz">0</span><div class="stat-lbl">Quiz ✓</div></div>
         <div class="stat-item"><span class="stat-num" id="statCards">0</span><div class="stat-lbl">Cards</div></div>
       </div>
-      <div class="streak-badge">🔥 <span id="statStreak">0</span> day streak</div>
+      <div class="streak-badge" id="streakBadge"><span class="streak-flame">🔥</span> <span id="statStreak">0</span> day streak</div>
     </div>
   </div>
 
@@ -435,6 +474,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showTab('lesson',this)">📖 Lesson</button>
       <button class="nav-tab" onclick="showTab('cards',this)">🃏 Cards</button>
+      <button class="nav-tab" onclick="showTab('booster',this)">🚀 Booster</button>
       <button class="nav-tab" onclick="showTab('review',this)">📚 Review</button>
       <button class="nav-tab" onclick="showTab('settings',this)">⚙️</button>
     </div>
@@ -444,6 +484,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 
     <!-- LESSON TAB -->
     <div id="tab-lesson">
+      <div id="celebrateBanner"></div>
       <div class="date-row" id="dateDisplay"></div>
       <!-- cycle dots -->
       <div class="cycle-bar-wrap">
@@ -458,11 +499,18 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
         <div class="loading-card"><div class="spinner"></div><div class="loading-text">Getting your lesson…</div></div>
       </div>
       <div id="compoundSection" class="hidden"></div>
+      <div id="todayCardsSection"></div>
       <div class="action-row">
         <button class="action-btn hidden" id="quizBtn" onclick="toggleQuiz()">📝 Quiz</button>
+        <button class="action-btn hidden" id="scrambleBtn" onclick="toggleScramble()">🔤 Scramble</button>
+        <button class="action-btn hidden" id="dictationBtn" onclick="toggleDictation()">⌨️ Dictation</button>
+      </div>
+      <div class="action-row">
         <button class="action-btn primary" id="newBtn" onclick="getNewSentence()">Next lesson ✦</button>
       </div>
       <div id="quizSection" class="hidden"></div>
+      <div id="scrambleSection" class="hidden"></div>
+      <div id="dictationSection" class="hidden"></div>
     </div>
 
     <!-- CARDS TAB -->
@@ -479,6 +527,18 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
         <div class="progress-txt"><span id="progressTxt">0 reviewed</span><span id="progressTotal">0 total</span></div>
       </div>
       <div class="flip-grid" id="flipGrid"><p class="no-cards">Complete your first lesson to build your card deck.</p></div>
+    </div>
+
+    <!-- VOCABULARY BOOSTER TAB -->
+    <div id="tab-booster" class="hidden">
+      <div class="cards-header"><h2>Vocabulary Booster</h2></div>
+      <p style="font-size:0.83rem;color:var(--ink-faint);margin-bottom:1rem;line-height:1.6;">
+        Extra words on today's theme, beyond what's in your daily lesson. Each batch is generated
+        just for you when you tap the button below.
+      </p>
+      <button class="action-btn primary" id="boosterFetchBtn" onclick="fetchBoosterWords()" style="margin-bottom:1.2rem">✨ Get 5 more words</button>
+      <div id="boosterError" class="error-msg"></div>
+      <div class="flip-grid" id="boosterGrid"><p class="no-cards">Tap the button above to get your first batch.</p></div>
     </div>
 
     <!-- REVIEW TAB -->
@@ -578,7 +638,7 @@ let currentNativeLang='it', activeTab='lesson', activeFilter='all';
 let state={
   subLevel:'A1.1',
   totalSentences:0, streak:0, lastDate:'', quizCorrect:0,
-  sessions:[], cards:[],
+  sessions:[], cards:[], boosterWords:[],
   themeId:1, sessionInTheme:0,
   usedCompoundWords:[],
   cyclesCompleted:0,
@@ -835,19 +895,50 @@ function renderCycleDots(){
 function setDateDisplay(){
   $('dateDisplay').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
+const STREAK_MILESTONES=[3,7,14,30,50,100,200,365];
 function checkStreak(){
   const today=new Date().toDateString();
   if(state.lastDate!==today){
+    const prevStreak=state.streak||0;
     const yesterday=new Date(Date.now()-86400000).toDateString();
     state.streak=(state.lastDate===yesterday)?state.streak+1:1;
     state.lastDate=today;
+    const hit=STREAK_MILESTONES.find(m=>prevStreak<m&&state.streak>=m);
+    if(hit) showCelebration('🔥',`${hit}-day streak!`,'Keep it up — consistency is what makes this work.');
+  }
+}
+function _setStatPop(id,val){
+  const el=$(id);if(!el)return;
+  if(el.textContent!==String(val)){
+    el.textContent=val;
+    el.classList.remove('stat-pop');
+    void el.offsetWidth; // restart animation
+    el.classList.add('stat-pop');
   }
 }
 function updateStats(){
-  $('statTotal').textContent=state.totalSentences||0;
-  $('statStreak').textContent=state.streak||0;
-  $('statQuiz').textContent=state.quizCorrect||0;
-  $('statCards').textContent=(state.cards||[]).length;
+  _setStatPop('statTotal',state.totalSentences||0);
+  _setStatPop('statStreak',state.streak||0);
+  _setStatPop('statQuiz',state.quizCorrect||0);
+  _setStatPop('statCards',(state.cards||[]).length);
+  const badge=$('streakBadge');if(badge)badge.classList.toggle('has-streak',(state.streak||0)>0);
+}
+
+/* ══ CELEBRATION BANNER ══════════════════════════════════════
+ * Small, dismissible, auto-clears after a few seconds. Used for
+ * streak milestones and level-ups — kept rare on purpose so it
+ * stays a nice surprise instead of visual noise.
+ * ══════════════════════════════════════════════════════════ */
+let _celebrateTimer=null;
+function showCelebration(icon,title,subtitle){
+  const el=$('celebrateBanner');if(!el)return;
+  el.innerHTML=`<div class="celebrate-banner">
+    <span class="celebrate-icon">${icon}</span>
+    <div class="celebrate-text"><strong>${esc(title)}</strong><span>${esc(subtitle||'')}</span></div>
+    <button class="celebrate-dismiss" onclick="$('celebrateBanner').innerHTML=''">✕</button>
+  </div>`;
+  if(_celebrateTimer)clearTimeout(_celebrateTimer);
+  _celebrateTimer=setTimeout(()=>{el.innerHTML='';},7000);
 }
 
 async function getNewSentence(){
@@ -855,7 +946,14 @@ async function getNewSentence(){
   $('quizSection').classList.add('hidden');
   $('quizBtn').classList.add('hidden');
   $('quizBtn').textContent='📝 Quiz';
+  $('scrambleSection').classList.add('hidden');
+  $('scrambleBtn').classList.add('hidden');
+  $('scrambleSection').innerHTML='';
+  $('dictationSection').classList.add('hidden');
+  $('dictationBtn').classList.add('hidden');
+  $('dictationSection').innerHTML='';
   $('compoundSection').classList.add('hidden');
+  $('todayCardsSection').innerHTML='';
   $('errorMsg').style.display='none';
   const isReading=(state.sessionInTheme||0)===11;
   $('mainCard').innerHTML=`<div class="loading-card"><div class="spinner"></div><div class="loading-text">${isReading?'Preparing your reading challenge…':'Preparing your lesson…'}</div></div>`;
@@ -887,6 +985,7 @@ async function getNewSentence(){
         const idx=SUB_LEVELS.findIndex(s=>s.id===(state.subLevel||'A1.1'));
         if(idx<SUB_LEVELS.length-1){
           state.subLevel=SUB_LEVELS[idx+1].id;
+          setTimeout(()=>showCelebration('🎓',`Level up: ${SUB_LEVELS[idx+1].label}`,'Two full cycles done at the last level — nice work.'),300);
         }
       }
     }
@@ -907,6 +1006,7 @@ async function getNewSentence(){
       compoundWord:currentSentence.compoundWord?.word||null,
     }];
     addVocabCards(currentSentence);
+    renderTodayCards(currentSentence);
     updateStats();
     renderLevelDisplay();
     renderCycleDots();
@@ -934,7 +1034,7 @@ function renderSentence(s){
     <div class="sentence-native">${esc(s.translation||'')}</div>
     <span class="grammar-badge">${esc(s.grammarConcept||'')}</span>
     <div class="tip-text">${esc(s.tip||'')}</div>
-    ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
+    ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map((v,i)=>`<div class="vocab-chip" style="animation-delay:${i*0.06}s"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
     <button class="listen-btn" onclick="speak(${JSON.stringify(s.english).replace(/"/g,'&quot;')})">🔊 Listen</button>
     ${feedbackRowHtml()}
     ${askTeacherRowHtml()}
@@ -960,6 +1060,8 @@ function renderSentence(s){
     </div>`;
   }
   $('quizBtn').classList.remove('hidden');
+  $('scrambleBtn').classList.remove('hidden');
+  $('dictationBtn').classList.remove('hidden');
 }
 
 /* ══ RENDER READING ═════════════════════════════════════════ */
@@ -990,7 +1092,7 @@ function renderReading(s){
       </div>
       ${s.vocab?.length?`<div style="margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border)">
         <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:0.6rem">Key vocabulary</div>
-        <div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>
+        <div class="vocab-row">${s.vocab.map((v,i)=>`<div class="vocab-chip" style="animation-delay:${i*0.06}s"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>
       </div>`:''}
       <button class="listen-btn" onclick="speakReading(${JSON.stringify((s.paragraphs||[]).join(' ')).replace(/"/g,'&quot;')})">🔊 Listen to full text</button>
       ${feedbackRowHtml()}
@@ -1010,6 +1112,8 @@ function renderReading(s){
   if(s.compoundWords) s.compoundWords.forEach(c=>addVocabCards({compoundWord:c}));
   if(s.vocab) addVocabCards({vocab:s.vocab});
   $('quizBtn').classList.add('hidden');
+  $('scrambleBtn').classList.add('hidden');
+  $('dictationBtn').classList.add('hidden');
 }
 
 function feedbackRowHtml(){
@@ -1137,15 +1241,108 @@ function checkAnswer(btn,correct){
   updateStats();saveState();
 }
 
+/* ══ SENTENCE SCRAMBLE ═══════════════════════════════════════
+ * Client-side only — reuses the sentence already generated for
+ * today's lesson, no extra AI call. Tests word-order awareness.
+ * ══════════════════════════════════════════════════════════ */
+let _scrambleAnswer=[]; // words placed so far
+let _scrambleBank=[];   // words still available
+function toggleScramble(){
+  const sec=$('scrambleSection');
+  if(sec.classList.contains('hidden')){renderScramble(currentSentence);sec.classList.remove('hidden');$('scrambleBtn').textContent='✕ Close scramble';}
+  else{sec.classList.add('hidden');$('scrambleBtn').textContent='🔤 Scramble';}
+}
+function renderScramble(s){
+  if(!s?.english)return;
+  const words=s.english.replace(/[.!?]$/,'').split(' ').filter(Boolean);
+  _scrambleAnswer=[];
+  _scrambleBank=shuffle(words);
+  // Guard against a shuffle that happens to land in the original order
+  if(_scrambleBank.join(' ')===words.join(' ')&&words.length>1){
+    [_scrambleBank[0],_scrambleBank[1]]=[_scrambleBank[1],_scrambleBank[0]];
+  }
+  $('scrambleSection').innerHTML=`<div class="quiz-card fade-in">
+    <div class="quiz-title">🔤 Put the sentence back in order</div>
+    <div class="scramble-answer" id="scrambleAnswerRow"></div>
+    <div class="scramble-bank" id="scrambleBankRow"></div>
+    <div id="scrambleFeedback"></div>
+  </div>`;
+  _renderScrambleRows();
+}
+function _renderScrambleRows(){
+  $('scrambleAnswerRow').innerHTML=_scrambleAnswer.map((w,i)=>`<span class="scramble-word" onclick="scrambleRemove(${i})">${esc(w)}</span>`).join('')||'<span style="color:var(--ink-faint);font-size:0.82rem">Tap words below, in order…</span>';
+  $('scrambleBankRow').innerHTML=_scrambleBank.map((w,i)=>`<span class="scramble-word" onclick="scrambleAdd(${i})">${esc(w)}</span>`).join('');
+}
+function scrambleAdd(i){
+  _scrambleAnswer.push(_scrambleBank[i]);
+  _scrambleBank.splice(i,1);
+  _renderScrambleRows();
+  if(!_scrambleBank.length)_checkScramble();
+}
+function scrambleRemove(i){
+  _scrambleBank.push(_scrambleAnswer[i]);
+  _scrambleAnswer.splice(i,1);
+  $('scrambleFeedback').innerHTML='';
+  _renderScrambleRows();
+}
+function _checkScramble(){
+  const target=(currentSentence?.english||'').replace(/[.!?]$/,'').split(' ').filter(Boolean);
+  const correct=_scrambleAnswer.join(' ')===target.join(' ');
+  const fb=$('scrambleFeedback');
+  if(correct){
+    fb.className='quiz-feedback ok';
+    fb.innerHTML='✓ Correct order!';
+  }else{
+    fb.className='quiz-feedback no';
+    fb.innerHTML=`✗ Not quite. The sentence is: <strong>${esc(currentSentence.english)}</strong> <button class="filter-btn" style="margin-left:0.4rem" onclick="renderScramble(currentSentence)">Try again</button>`;
+  }
+}
+
+/* ══ LISTEN & TYPE (dictation) ═══════════════════════════════
+ * Also client-side only, no extra AI call — plays the existing
+ * TTS audio and compares typed input to the known sentence.
+ * ══════════════════════════════════════════════════════════ */
+function toggleDictation(){
+  const sec=$('dictationSection');
+  if(sec.classList.contains('hidden')){renderDictation(currentSentence);sec.classList.remove('hidden');$('dictationBtn').textContent='✕ Close dictation';}
+  else{sec.classList.add('hidden');$('dictationBtn').textContent='⌨️ Dictation';}
+}
+function renderDictation(s){
+  if(!s?.english)return;
+  $('dictationSection').innerHTML=`<div class="quiz-card fade-in">
+    <div class="quiz-title">⌨️ Listen, then type what you hear</div>
+    <button class="listen-btn" style="margin-bottom:0.9rem" onclick="speak(${JSON.stringify(s.english).replace(/"/g,'&quot;')})">🔊 Play</button>
+    <input type="text" class="dictation-input" id="dictationInput" placeholder="Type the sentence…" autocomplete="off" onkeydown="if(event.key==='Enter')checkDictation()">
+    <button class="action-btn primary" onclick="checkDictation()">Check</button>
+    <div id="dictationFeedback" style="margin-top:0.7rem"></div>
+  </div>`;
+}
+function _normalizeDictation(t){
+  return String(t||'').toLowerCase().replace(/[.,!?;:'"()]/g,'').replace(/\s+/g,' ').trim();
+}
+function checkDictation(){
+  const input=$('dictationInput').value;
+  const correct=_normalizeDictation(input)===_normalizeDictation(currentSentence?.english);
+  const fb=$('dictationFeedback');
+  if(correct){
+    fb.className='quiz-feedback ok';
+    fb.textContent='✓ Spot on!';
+  }else{
+    fb.className='quiz-feedback no';
+    fb.innerHTML=`✗ Not quite. The sentence is: <strong>${esc(currentSentence.english)}</strong>`;
+  }
+}
+
 /* ══ TABS ════════════════════════════════════════════════════ */
 function showTab(tab,btn){
   activeTab=tab;
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  ['lesson','cards','review','settings'].forEach(t=>{
+  ['lesson','cards','booster','review','settings'].forEach(t=>{
     const el=$('tab-'+t);if(el)el.classList[t===tab?'remove':'add']('hidden');
   });
   if(tab==='cards')renderCards();
+  if(tab==='booster')renderBoosterGrid();
   if(tab==='review')renderReview();
 }
 
@@ -1165,6 +1362,44 @@ function addVocabCards(s){
       state.cards=[...(state.cards||[]),{id,cat:'vocab',term:v.en,back:v.native||'',reviewed:false,needsReview:false,addedAt:Date.now()}];
   });
 }
+
+/* ══ TODAY'S CARDS (inline preview on the lesson page) ══════
+ * Reuses the exact card objects already added to state.cards by
+ * addVocabCards() above, so the "back" content and review status
+ * stay in sync with the full Cards tab automatically. Uses its own
+ * tc_fc_ prefixed DOM ids (rather than reusing fc_) since the full
+ * Cards tab's flip-wraps can exist in the DOM at the same time
+ * (just hidden), and duplicate ids would break getElementById.
+ * ══════════════════════════════════════════════════════════ */
+function renderTodayCards(s){
+  const wrap=$('todayCardsSection');
+  if(!wrap)return;
+  if(!s){wrap.innerHTML='';return;}
+  const ids=[];
+  if(s.compoundWord?.word) ids.push('cw_'+s.compoundWord.word);
+  if(s.compoundWords) s.compoundWords.forEach(c=>{if(c.word) ids.push('cw_'+c.word);});
+  if(s.vocab) s.vocab.forEach(v=>ids.push('vc_'+v.en.replace(/\s/g,'_')));
+  const items=ids.map(id=>(state.cards||[]).find(c=>c.id===id)).filter(Boolean);
+  if(!items.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div class="today-cards-wrap fade-in">
+    <div class="today-cards-head"><h3>🃏 Today's cards</h3><button class="today-cards-link" onclick="jumpToCardsTab()">See full deck →</button></div>
+    <div class="mini-grid">${items.map((c,i)=>`<div class="flip-wrap mini" id="tc_fc_${c.id}" style="animation-delay:${i*0.05}s" onclick="flipTodayCard('${c.id}')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front"><div class="flip-front-body"><div class="flip-term">${esc(c.term)}</div></div></div>
+        <div class="flip-face flip-back"><div class="flip-back-body">${c.back}</div></div>
+      </div>
+    </div>`).join('')}</div>
+  </div>`;
+}
+function flipTodayCard(id){
+  const el=$('tc_fc_'+id);if(!el)return;
+  el.classList.toggle('flipped');
+  const card=(state.cards||[]).find(c=>c.id===id);
+  if(card&&!card.reviewed){card.reviewed=true;saveState();}
+}
+function jumpToCardsTab(){
+  showTab('cards',document.querySelectorAll('.nav-tab')[1]);
+}
 function filterCards(f,btn){
   activeFilter=f;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
@@ -1182,8 +1417,8 @@ function renderCards(){
   $('progressTxt').textContent=`${reviewed} reviewed`;
   $('progressTotal').textContent=`${cards.length} total`;
   if(!filtered.length){$('flipGrid').innerHTML=`<p class="no-cards">${activeFilter==='review'?'No cards marked for review!':'Complete a lesson to add cards.'}</p>`;return;}
-  $('flipGrid').innerHTML=filtered.map(c=>`
-    <div class="flip-wrap${c.reviewed?' done':''}" id="fc_${c.id}" onclick="flipCard('${c.id}')">
+  $('flipGrid').innerHTML=filtered.map((c,i)=>`
+    <div class="flip-wrap${c.reviewed?' done':''}" id="fc_${c.id}" style="animation-delay:${Math.min(i*0.04,0.6)}s" onclick="flipCard('${c.id}')">
       <div class="flip-inner">
         <div class="flip-face flip-front">
           <div class="flip-front-top"><span class="flip-cat">${c.cat==='compound'?'Compound':'Vocabulary'}</span><span class="flip-seen">✓</span></div>
@@ -1450,6 +1685,68 @@ function renderTeacherRequestsList(){
 async function resolveTeacherRequest(id){
   try{ await window._db.collection('teacherRequests').doc(id).update({resolved:true}); }
   catch(e){ alert('Could not update: '+e.message); }
+}
+
+/* ══ VOCABULARY BOOSTER ══════════════════════════════════════
+ * On-demand only (never automatic) — calls a small, cheap Haiku
+ * endpoint (api/vocab-booster.js) just for the words already
+ * fetched, capped at the last 60 to keep the Firestore doc small.
+ * ══════════════════════════════════════════════════════════ */
+async function fetchBoosterWords(){
+  const btn=$('boosterFetchBtn');
+  const errEl=$('boosterError');
+  errEl.style.display='none';
+  btn.disabled=true;
+  const original=btn.textContent;
+  btn.textContent='Generating…';
+  try{
+    const existing=(state.boosterWords||[]).map(w=>w.en);
+    const res=await fetch('/api/vocab-booster',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        subLevel:state.subLevel||'A1.1',
+        nativeLang:currentNativeLang,
+        themeId:state.themeId||1,
+        excludeWords:existing,
+      }),
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error||'Could not fetch words.');}
+    const data=await res.json();
+    const fresh=(data.words||[]).map(w=>({...w,addedAt:Date.now()}));
+    state.boosterWords=[...(state.boosterWords||[]),...fresh].slice(-60);
+    renderBoosterGrid();
+    await saveState();
+  }catch(e){
+    errEl.textContent='Error: '+(e.message||'Something went wrong.');
+    errEl.style.display='block';
+  }
+  btn.disabled=false;
+  btn.textContent=original;
+}
+function renderBoosterGrid(){
+  const words=state.boosterWords||[];
+  const grid=$('boosterGrid');
+  if(!words.length){grid.innerHTML='<p class="no-cards">Tap the button above to get your first batch.</p>';return;}
+  grid.innerHTML=words.slice().reverse().map((w,i)=>`
+    <div class="flip-wrap" style="animation-delay:${Math.min(i*0.04,0.5)}s" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">
+          <div class="flip-front-top"><span class="flip-cat">Booster</span></div>
+          <div class="flip-front-body"><div class="flip-term">${esc(w.en)}</div><div class="flip-sub">Tap to flip</div></div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="flip-back-top"><span class="flip-back-lbl">Answer</span></div>
+          <div class="flip-back-body">
+            <strong>${esc(w.native||'')}</strong><br><br>
+            <em>${esc(w.exampleEn||'')}</em><br>
+            <span style="color:var(--ink-faint)">${esc(w.exampleNative||'')}</span>
+          </div>
+          <div class="flip-back-foot">
+            <button class="spaced-btn know" onclick="event.stopPropagation();speak(${JSON.stringify(w.en).replace(/"/g,'&quot;')})">🔊 Listen</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 </script>
