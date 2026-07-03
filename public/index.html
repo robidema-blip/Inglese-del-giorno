@@ -9,17 +9,20 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
- const firebaseConfig = {
-  apiKey: "AIzaSyCadBE7AuaxzMVjVsKNIYvB-6dIwuyhHuI",
-  authDomain: "english-daily-13316.firebaseapp.com",
-  projectId: "english-daily-13316",
-  storageBucket: "english-daily-13316.firebasestorage.app",
-  messagingSenderId: "635021407097",
-  appId: "1:635021407097:web:abb860ac316047364935a8"
-};
-  firebase.initializeApp(firebaseConfig);
-  window._auth = firebase.auth();
-  window._db   = firebase.firestore();
+  // Firebase config is fetched from the server (see api/config.js) so it
+  // is never hand-pasted into this file before a deploy — it comes from
+  // Vercel environment variables instead. See DEPLOY.md.
+  window._firebaseReady = fetch('/api/config')
+    .then(r => { if (!r.ok) throw new Error('config fetch failed: ' + r.status); return r.json(); })
+    .then(cfg => {
+      firebase.initializeApp(cfg);
+      window._auth = firebase.auth();
+      window._db   = firebase.firestore();
+    })
+    .catch(err => {
+      console.error('Could not load app configuration:', err);
+      window._firebaseConfigError = true;
+    });
 </script>
 <style>
 :root{
@@ -141,6 +144,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .emoji-btn:hover{border-color:var(--terra);transform:scale(1.12);}
 .emoji-btn.selected{border-color:var(--terra);background:var(--terra-glow);}
 .feedback-thanks{font-size:0.78rem;color:var(--sage);display:none;}
+.ask-teacher-row{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);}
 
 /* compound card */
 .compound-card{background:var(--gold-bg);border:1.5px solid var(--gold-border);border-radius:16px;padding:1.4rem 1.5rem;margin-bottom:1rem;}
@@ -324,6 +328,14 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
           <div class="pw-hint" id="pwHint"></div>
         </div>
         <div class="form-group">
+          <label>I am signing up as</label>
+          <div class="auth-tabs" style="margin-bottom:0">
+            <button type="button" class="auth-tab active" id="roleTabStudent" onclick="switchSignupRole('student')">Student</button>
+            <button type="button" class="auth-tab" id="roleTabTeacher" onclick="switchSignupRole('teacher')">Teacher</button>
+          </div>
+        </div>
+        <div id="studentOnlyFields">
+        <div class="form-group">
           <label>Native language</label>
           <select id="signupLang">
             <option value="it">🇮🇹 Italiano</option>
@@ -361,14 +373,15 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
           </select>
         </div>
         <div class="form-group">
-          <label>Teacher PIN (4 digits — share with your teacher)</label>
-          <input type="text" id="signupPin" maxlength="4" placeholder="e.g. 1234">
-        </div>
-        <div class="form-group">
           <label>Teacher's email (optional)</label>
           <input type="email" id="signupTeacherEmail" placeholder="teacher@email.com">
         </div>
-        <button class="auth-btn" onclick="doSignup()">Create account →</button>
+        <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin:-0.4rem 0 0.9rem;line-height:1.5;">
+          After signing up you'll get a personal invite code. Give it to your teacher —
+          they create their own separate teacher account and use the code to link to you.
+        </p>
+        </div>
+        <button class="auth-btn" onclick="doSignup()" id="signupSubmitBtn">Create account →</button>
       </div>
     </div>
   </div>
@@ -423,7 +436,6 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
       <button class="nav-tab active" onclick="showTab('lesson',this)">📖 Lesson</button>
       <button class="nav-tab" onclick="showTab('cards',this)">🃏 Cards</button>
       <button class="nav-tab" onclick="showTab('review',this)">📚 Review</button>
-      <button class="nav-tab" onclick="showTab('teacher',this)">👩‍🏫 Teacher</button>
       <button class="nav-tab" onclick="showTab('settings',this)">⚙️</button>
     </div>
   </div>
@@ -474,39 +486,6 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
       <div id="reviewList"><p class="no-cards">Complete your first lesson to see your history.</p></div>
     </div>
 
-    <!-- TEACHER TAB -->
-    <div id="tab-teacher" class="hidden">
-      <div id="teacherLogin" class="teacher-login">
-        <p>Enter the student's 4-digit teacher PIN</p>
-        <div class="pin-row">
-          <input type="number" id="pin1" oninput="pinNext(this,'pin2')">
-          <input type="number" id="pin2" oninput="pinNext(this,'pin3')">
-          <input type="number" id="pin3" oninput="pinNext(this,'pin4')">
-          <input type="number" id="pin4" oninput="checkPin()">
-        </div>
-        <p id="pinError" style="color:#c03030;font-size:0.8rem;display:none">Incorrect PIN</p>
-      </div>
-      <div id="teacherContent" class="hidden">
-        <div class="t-stats" id="tStats"></div>
-
-        <!-- Level control -->
-        <div class="t-section">
-          <h3>Level management</h3>
-          <div class="t-level-card">
-            <div class="t-level-title">Current level</div>
-            <div class="t-level-current" id="tLevelCurrent">—</div>
-            <div class="t-level-grid" id="tLevelGrid"></div>
-          </div>
-        </div>
-
-        <div class="t-section">
-          <h3>Session history</h3>
-          <div id="tHistory"></div>
-        </div>
-        <button class="copy-btn" onclick="copyReport()">📋 Copy WhatsApp report</button>
-      </div>
-    </div>
-
     <!-- SETTINGS TAB -->
     <div id="tab-settings" class="hidden">
       <div class="settings-section">
@@ -515,7 +494,10 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
           <div><div class="settings-label">Email</div><div class="settings-sub" id="settingsEmail">—</div></div>
         </div>
         <div class="settings-row">
-          <div><div class="settings-label">Teacher PIN</div><div class="settings-sub" id="settingsPin">—</div></div>
+          <div><div class="settings-label">Your invite code</div><div class="settings-sub" id="settingsInviteCode">—</div></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Linked teachers</div><div class="settings-sub" id="settingsTeacherCount">—</div></div>
         </div>
         <div class="settings-row">
           <div><div class="settings-label">Current level</div><div class="settings-sub" id="settingsLevel">—</div></div>
@@ -528,6 +510,43 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ══ TEACHER APP (separate account, real Firebase Auth custom claim) ══ -->
+<div id="teacherScreen" style="display:none">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-icon">👩‍🏫</div>
+      <span class="topbar-name">English <em>Daily</em> — Teacher</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="teacherTopbarName"></span>
+      <button class="topbar-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="t-section">
+      <h3>Link a student</h3>
+      <div class="t-level-card">
+        <div class="form-group"><label>Student's email</label><input type="email" id="linkStudentEmail" placeholder="student@email.com"></div>
+        <div class="form-group"><label>Invite code</label><input type="text" id="linkStudentCode" placeholder="e.g. 7K2QXM" style="text-transform:uppercase"></div>
+        <button class="action-btn primary" onclick="doLinkStudent()">Link student</button>
+        <p id="linkStudentMsg" style="display:none;font-size:0.82rem;margin-top:0.6rem"></p>
+      </div>
+    </div>
+
+    <div class="t-section" id="teacherStudentSwitcherWrap">
+      <h3>Your students</h3>
+      <div class="filter-row" id="teacherStudentSwitcher"></div>
+    </div>
+
+    <div id="teacherDashboard"></div>
+
+    <div class="t-section">
+      <h3>Questions <span class="flip-seen" id="teacherRequestsBadge" style="display:none;background:var(--terra)"></span></h3>
+      <div id="teacherRequestsList"></div>
+    </div>
   </div>
 </div>
 
@@ -562,9 +581,13 @@ let state={
   sessions:[], cards:[],
   themeId:1, sessionInTheme:0,
   usedCompoundWords:[],
-  teacherPin:'0000',
   cyclesCompleted:0,
 };
+let signupRole='student';
+let isTeacherAccount=false;
+let teacherStudents=[]; // [{uid, data}] linked students, teacher mode only
+let activeStudentUid=null;
+let teacherRequestsUnsub=null;
 
 /* ══ HELPERS ════════════════════════════════════════════════ */
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -583,7 +606,7 @@ function checkPwMatch(){
 
 /* ══ AUTH ════════════════════════════════════════════════════ */
 function switchAuthTab(tab){
-  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.auth-tabs')[0].querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
   event.currentTarget.classList.add('active');
   $('loginForm').style.display=tab==='login'?'block':'none';
   $('signupForm').style.display=tab==='signup'?'block':'none';
@@ -591,7 +614,49 @@ function switchAuthTab(tab){
 }
 function showAuthError(msg){$('authError').textContent=msg;$('authError').style.display='block';}
 
+/* ══ SIGNUP ROLE TOGGLE (student vs teacher account) ════════ */
+function switchSignupRole(role){
+  signupRole=role;
+  $('roleTabStudent').classList.toggle('active',role==='student');
+  $('roleTabTeacher').classList.toggle('active',role==='teacher');
+  $('studentOnlyFields').style.display=role==='student'?'block':'none';
+  $('signupSubmitBtn').textContent=role==='student'?'Create account →':'Create teacher account →';
+}
+
+function genInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars (0/O, 1/I)
+  const arr=new Uint32Array(6);
+  crypto.getRandomValues(arr);
+  let out='';
+  for(let i=0;i<6;i++) out+=chars[arr[i]%chars.length];
+  return out;
+}
+
+/* ══ LEGACY ACCOUNT SELF-HEAL ═══════════════════════════════
+ * Accounts created before the teacher-linking rework (custom
+ * claims + inviteCode + teacherUids) are missing those fields.
+ * Rather than requiring Roby to run a manual migration, we patch
+ * any missing fields in transparently on next login. No-op for
+ * already-migrated or brand-new accounts.
+ * ══════════════════════════════════════════════════════════ */
+async function migrateLegacyProfile(user,ref,profileData){
+  const patch={};
+  if(!profileData.email) patch.email=(user.email||'').toLowerCase();
+  if(!profileData.inviteCode) patch.inviteCode=genInviteCode();
+  if(!Array.isArray(profileData.teacherUids)) patch.teacherUids=[];
+  if(Object.keys(patch).length){
+    try{
+      await ref.update(patch);
+      Object.assign(profileData,patch);
+    }catch(e){console.error('Could not migrate legacy profile:',e);}
+  }
+}
+
 async function doSignup(){
+  return signupRole==='teacher' ? doSignupTeacher() : doSignupStudent();
+}
+
+async function doSignupStudent(){
   const name=$('signupName').value.trim();
   const email=$('signupEmail').value.trim();
   const pass=$('signupPassword').value;
@@ -599,18 +664,40 @@ async function doSignup(){
   const lang=$('signupLang').value;
   const subLevel=$('signupLevel').value;
   const teacherEmail=$('signupTeacherEmail').value.trim();
-  const pin=$('signupPin').value.padStart(4,'0');
+  if(!name||!email||!pass) return showAuthError('Please fill in all fields.');
+  if(pass.length<6) return showAuthError('Password must be at least 6 characters.');
+  if(pass!==pass2) return showAuthError('Passwords do not match.');
+  const inviteCode=genInviteCode();
+  try{
+    const cred=await window._auth.createUserWithEmailAndPassword(email,pass);
+    const newState={...state,subLevel};
+    await window._db.collection('users').doc(cred.user.uid).set({
+      name, email:email.toLowerCase(), lang, teacherEmail, inviteCode, teacherUids:[], state:newState,
+    });
+    if(teacherEmail){
+      await fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({teacherEmail,studentName:name,studentEmail:email,inviteCode,subLevel,lang})});
+    }
+  }catch(e){showAuthError(e.message);}
+}
+
+async function doSignupTeacher(){
+  const name=$('signupName').value.trim();
+  const email=$('signupEmail').value.trim();
+  const pass=$('signupPassword').value;
+  const pass2=$('signupPasswordConfirm').value;
   if(!name||!email||!pass) return showAuthError('Please fill in all fields.');
   if(pass.length<6) return showAuthError('Password must be at least 6 characters.');
   if(pass!==pass2) return showAuthError('Passwords do not match.');
   try{
     const cred=await window._auth.createUserWithEmailAndPassword(email,pass);
-    const newState={...state,subLevel,teacherPin:pin};
-    await window._db.collection('users').doc(cred.user.uid).set({name,lang,teacherEmail,state:newState});
-    if(teacherEmail){
-      await fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({teacherEmail,studentName:name,studentEmail:email,pin,subLevel,lang})});
-    }
+    await cred.user.updateProfile({displayName:name});
+    const idToken=await cred.user.getIdToken();
+    const r=await fetch('/api/teacher-claim',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken,name})});
+    if(!r.ok){const e=await r.json();throw new Error(e.error||'Could not create teacher account.');}
+    // Force a token refresh so the new custom claim is present client-side.
+    await cred.user.getIdToken(true);
   }catch(e){showAuthError(e.message);}
 }
 
@@ -620,7 +707,11 @@ async function doLogin(){
   try{await window._auth.signInWithEmailAndPassword(email,pass);}
   catch(e){showAuthError('Incorrect email or password.');}
 }
-function doLogout(){window._auth.signOut();}
+function doLogout(){
+  if(teacherRequestsUnsub){teacherRequestsUnsub();teacherRequestsUnsub=null;}
+  teacherStudents=[];activeStudentUid=null;isTeacherAccount=false;
+  window._auth.signOut();
+}
 
 /* ══ DELETE ACCOUNT ═════════════════════════════════════════ */
 async function deleteAccount(){
@@ -637,32 +728,47 @@ async function deleteAccount(){
 }
 
 /* ══ BOOT ════════════════════════════════════════════════════ */
-window.addEventListener('load',()=>{
+window.addEventListener('load',async ()=>{
+  await window._firebaseReady;
+  if(window._firebaseConfigError){
+    $('authScreen').innerHTML='<div style="color:#fff;text-align:center;max-width:360px"><p>English Daily could not load its configuration. Please try again in a moment — if this keeps happening, let your teacher know.</p></div>';
+    return;
+  }
   window._auth.onAuthStateChanged(async user=>{
     if(user){
       currentUser=user;
+      const tokenResult=await user.getIdTokenResult();
+      isTeacherAccount=tokenResult.claims.teacher===true;
+      if(isTeacherAccount){
+        bootTeacherApp();
+        return;
+      }
       const snap=await window._db.collection('users').doc(user.uid).get();
       if(snap.exists){
         profile=snap.data();
         state={...state,...(profile.state||{})};
         currentNativeLang=profile.lang||'it';
+        await migrateLegacyProfile(user,snap.ref,profile);
       }
       bootApp();
     }else{
       currentUser=null;
       $('authScreen').style.display='flex';
       $('appScreen').style.display='none';
+      $('teacherScreen').style.display='none';
     }
   });
 });
 
 function bootApp(){
   $('authScreen').style.display='none';
+  $('teacherScreen').style.display='none';
   $('appScreen').style.display='flex';
   $('appScreen').style.flexDirection='column';
   $('topbarName').textContent=profile.name||'Student';
   $('settingsEmail').textContent=currentUser?.email||'—';
-  $('settingsPin').textContent=state.teacherPin||'0000';
+  $('settingsInviteCode').textContent=profile.inviteCode||'—';
+  $('settingsTeacherCount').textContent=(profile.teacherUids||[]).length;
   setDateDisplay();
   checkStreak();
   updateStats();
@@ -831,6 +937,7 @@ function renderSentence(s){
     ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
     <button class="listen-btn" onclick="speak(${JSON.stringify(s.english).replace(/"/g,'&quot;')})">🔊 Listen</button>
     ${feedbackRowHtml()}
+    ${askTeacherRowHtml()}
   </div>`;
   if(s.compoundWord){
     const c=s.compoundWord;
@@ -887,6 +994,7 @@ function renderReading(s){
       </div>`:''}
       <button class="listen-btn" onclick="speakReading(${JSON.stringify((s.paragraphs||[]).join(' ')).replace(/"/g,'&quot;')})">🔊 Listen to full text</button>
       ${feedbackRowHtml()}
+      ${askTeacherRowHtml()}
     </div>`;
 
   if(s.comprehensionQuestion){
@@ -917,6 +1025,42 @@ function feedbackRowHtml(){
   </div>`;
 }
 
+function askTeacherRowHtml(){
+  return `<div class="ask-teacher-row">
+    <button class="action-btn" id="askTeacherBtn" onclick="toggleAskTeacher()">🙋 Ask the teacher</button>
+    <div id="askTeacherPanel" class="hidden" style="margin-top:0.6rem">
+      <button class="action-btn primary" onclick="sendAskTeacher(null)">I'm stuck here</button>
+      <textarea id="askTeacherNote" placeholder="Optional: say more about what's confusing…" style="width:100%;margin-top:0.5rem;padding:0.6rem;border:1.5px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:0.85rem;resize:vertical;min-height:60px;"></textarea>
+      <button class="action-btn" style="margin-top:0.4rem" onclick="sendAskTeacher($('askTeacherNote').value.trim()||null)">Send question</button>
+    </div>
+    <p id="askTeacherThanks" class="hidden" style="color:var(--sage);font-size:0.82rem;margin-top:0.5rem">✓ Sent to your teacher.</p>
+  </div>`;
+}
+function toggleAskTeacher(){
+  const p=$('askTeacherPanel');if(p)p.classList.toggle('hidden');
+}
+async function sendAskTeacher(note){
+  if(!currentUser)return;
+  try{
+    await window._db.collection('teacherRequests').add({
+      studentUid: currentUser.uid,
+      studentName: profile.name||'Student',
+      lessonEnglish: currentSentence?.english || currentSentence?.title || '',
+      lessonTranslation: currentSentence?.translation || (currentSentence?.paragraphTranslations?.[0]||''),
+      subLevel: state.subLevel||'A1.1',
+      note: note||null,
+      timestamp: Date.now(),
+      resolved: false,
+    });
+    const panel=$('askTeacherPanel'),thanks=$('askTeacherThanks');
+    if(panel)panel.classList.add('hidden');
+    if(thanks)thanks.classList.remove('hidden');
+  }catch(e){
+    alert('Could not send — check your connection and try again.');
+    console.error('sendAskTeacher error:',e);
+  }
+}
+
 function toggleReadingTranslation(btn){
   const t=$('readingTranslation');
   const show=!t.classList.contains('show');
@@ -928,19 +1072,36 @@ function revealCompound(){
   setTimeout(()=>r.classList.add('show'),10);
   document.querySelector('.reveal-btn').style.display='none';
 }
+/* ══ TEXT-TO-SPEECH ══════════════════════════════════════════
+ * Uses the browser's built-in speechSynthesis (no server TTS —
+ * quality depends on the device/OS voices installed; this is a
+ * known limitation vs "native-quality" audio, flagged separately).
+ * getVoices() loads asynchronously on first page load, so we cache
+ * the list once it's ready instead of querying it (often empty)
+ * at click time — this was causing "Listen" to fall back to a
+ * default/robotic voice or fail silently on the first tap.
+ * ══════════════════════════════════════════════════════════════ */
+let _cachedVoices=[];
+function _loadVoices(){ _cachedVoices=window.speechSynthesis?window.speechSynthesis.getVoices():[]; }
+if(window.speechSynthesis){
+  _loadVoices();
+  window.speechSynthesis.onvoiceschanged=_loadVoices;
+}
+function _pickEnglishVoice(){
+  const en=_cachedVoices.filter(v=>v.lang.startsWith('en'));
+  return en.find(v=>/en-GB/i.test(v.lang))||en[0]||null;
+}
 function speak(text){
   if(!window.speechSynthesis)return;
   const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';
-  const v=window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
-  if(v.length)u.voice=v[0];
+  const voice=_pickEnglishVoice();if(voice)u.voice=voice;
   window.speechSynthesis.speak(u);
 }
 function speakReading(text){
   if(!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';u.rate=0.9;
-  const v=window.speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
-  if(v.length)u.voice=v[0];
+  const voice=_pickEnglishVoice();if(voice)u.voice=voice;
   window.speechSynthesis.speak(u);
 }
 function submitEmoji(emoji,btn){
@@ -981,16 +1142,11 @@ function showTab(tab,btn){
   activeTab=tab;
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  ['lesson','cards','review','teacher','settings'].forEach(t=>{
+  ['lesson','cards','review','settings'].forEach(t=>{
     const el=$('tab-'+t);if(el)el.classList[t===tab?'remove':'add']('hidden');
   });
   if(tab==='cards')renderCards();
   if(tab==='review')renderReview();
-  if(tab==='teacher'){
-    $('teacherLogin').style.display='block';
-    $('teacherContent').classList.add('hidden');
-    ['pin1','pin2','pin3','pin4'].forEach(id=>{const el=$(id);if(el)el.value='';});
-  }
 }
 
 /* ══ FLIP CARDS ═════════════════════════════════════════════ */
@@ -1087,21 +1243,80 @@ function renderReview(){
     </div>`).join('');
 }
 
-/* ══ TEACHER TAB ═════════════════════════════════════════════ */
-function pinNext(el,nextId){el.value=el.value.toString().slice(-1);if(el.value)$(nextId)?.focus();}
-function checkPin(){
-  const pin=['pin1','pin2','pin3','pin4'].map(id=>$(id).value).join('');
-  if(pin.length===4){
-    if(pin===(state.teacherPin||'0000')){
-      $('pinError').style.display='none';
-      $('teacherLogin').style.display='none';
-      $('teacherContent').classList.remove('hidden');
-      renderTeacher();
-    }else{$('pinError').style.display='block';}
+/* ══ TEACHER APP (separate account, separate screen) ═════════
+ * Loaded only when the signed-in Firebase Auth account carries
+ * the `teacher: true` custom claim (set server-side by
+ * api/teacher-claim.js). Data access is enforced independently
+ * by firestore.rules — this client code is convenience only.
+ * ══════════════════════════════════════════════════════════ */
+async function bootTeacherApp(){
+  $('authScreen').style.display='none';
+  $('appScreen').style.display='none';
+  $('teacherScreen').style.display='flex';
+  $('teacherScreen').style.flexDirection='column';
+  $('teacherTopbarName').textContent=currentUser?.email||'Teacher';
+  await loadTeacherStudents();
+  listenTeacherRequests();
+}
+
+async function loadTeacherStudents(){
+  teacherStudents=[];
+  try{
+    const snap=await window._db.collection('users')
+      .where('teacherUids','array-contains',currentUser.uid).get();
+    snap.forEach(doc=>teacherStudents.push({uid:doc.id,data:doc.data()}));
+  }catch(e){
+    console.error('Could not load linked students:',e);
+  }
+  renderStudentSwitcher();
+  if(teacherStudents.length && !teacherStudents.find(s=>s.uid===activeStudentUid)){
+    activeStudentUid=teacherStudents[0].uid;
+  }
+  listenTeacherRequests(); // re-scope the questions listener to the current student list
+  if(activeStudentUid) renderTeacherDashboard();
+  else $('teacherDashboard').innerHTML='<p style="color:var(--ink-faint);font-size:0.88rem;padding:1rem 0">No students linked yet. Ask your student for their invite code (Settings tab in their app) and link them below.</p>';
+}
+
+function renderStudentSwitcher(){
+  const wrap=$('teacherStudentSwitcher');
+  if(!teacherStudents.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=teacherStudents.map(s=>`
+    <button class="filter-btn${s.uid===activeStudentUid?' active':''}" onclick="selectStudent('${s.uid}')">${esc(s.data.name||s.data.email||'Student')}</button>
+  `).join('');
+}
+
+function selectStudent(uid){
+  activeStudentUid=uid;
+  renderStudentSwitcher();
+  renderTeacherDashboard();
+  renderTeacherRequestsList();
+}
+
+async function doLinkStudent(){
+  const email=$('linkStudentEmail').value.trim();
+  const code=$('linkStudentCode').value.trim();
+  const msg=$('linkStudentMsg');
+  msg.style.display='none';
+  if(!email||!code){msg.textContent='Enter both the student email and invite code.';msg.style.display='block';msg.style.color='#c03030';return;}
+  try{
+    const idToken=await currentUser.getIdToken();
+    const r=await fetch('/api/link-teacher',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken,studentEmail:email,inviteCode:code})});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||'Could not link student.');
+    msg.textContent=`✓ Linked to ${j.studentName||'student'}!`;msg.style.color='var(--sage)';msg.style.display='block';
+    $('linkStudentEmail').value='';$('linkStudentCode').value='';
+    await loadTeacherStudents();
+  }catch(e){
+    msg.textContent=e.message;msg.style.color='#c03030';msg.style.display='block';
   }
 }
 
-function renderTeacher(){
+function renderTeacherDashboard(){
+  const entry=teacherStudents.find(s=>s.uid===activeStudentUid);
+  const dash=$('teacherDashboard');
+  if(!entry){dash.innerHTML='';return;}
+  const state=entry.data.state||{};
   const sessions=state.sessions||[];
   const qt=sessions.filter(x=>x.quizResult).length;
   const qr=sessions.filter(x=>x.quizResult==='correct').length;
@@ -1110,30 +1325,45 @@ function renderTeacher(){
   const scores={'😕':1,'😐':2,'😊':3,'🤩':4};
   const avgMood=moods.length?['😕','😐','😊','🤩'][Math.round(moods.reduce((a,e)=>a+(scores[e]||2),0)/moods.length)-1]||'😊':'—';
   const readingCount=sessions.filter(x=>x.type==='reading').length;
-
-  $('tStats').innerHTML=`
-    <div class="t-stat"><span class="t-stat-num">${state.totalSentences||0}</span><span class="t-stat-lbl">Total lessons</span></div>
-    <div class="t-stat"><span class="t-stat-num">${state.streak||0}🔥</span><span class="t-stat-lbl">Day streak</span></div>
-    <div class="t-stat"><span class="t-stat-num">${pct}%</span><span class="t-stat-lbl">Quiz accuracy</span></div>
-    <div class="t-stat"><span class="t-stat-num">${avgMood}</span><span class="t-stat-lbl">Avg mood</span></div>
-    <div class="t-stat"><span class="t-stat-num">${readingCount}</span><span class="t-stat-lbl">Readings done</span></div>
-    <div class="t-stat"><span class="t-stat-num">${(state.cards||[]).length}</span><span class="t-stat-lbl">Cards collected</span></div>`;
-
   const currentSL=state.subLevel||'A1.1';
-  $('tLevelCurrent').textContent=subLevelObj(currentSL).label;
-  $('tLevelGrid').innerHTML=SUB_LEVELS.map(sl=>`
-    <button class="t-level-btn${sl.id===currentSL?' active-lvl':''}" onclick="teacherSetLevel('${sl.id}')">
-      ${sl.id}<small>${sl.cefr}</small>
-    </button>`).join('');
 
-  if(!sessions.length){$('tHistory').innerHTML='<p style="color:var(--ink-faint);font-size:0.84rem">No sessions yet.</p>';return;}
+  let html=`
+    <div class="t-stats">
+      <div class="t-stat"><span class="t-stat-num">${state.totalSentences||0}</span><span class="t-stat-lbl">Total lessons</span></div>
+      <div class="t-stat"><span class="t-stat-num">${state.streak||0}🔥</span><span class="t-stat-lbl">Day streak</span></div>
+      <div class="t-stat"><span class="t-stat-num">${pct}%</span><span class="t-stat-lbl">Quiz accuracy</span></div>
+      <div class="t-stat"><span class="t-stat-num">${avgMood}</span><span class="t-stat-lbl">Avg mood</span></div>
+      <div class="t-stat"><span class="t-stat-num">${readingCount}</span><span class="t-stat-lbl">Readings done</span></div>
+      <div class="t-stat"><span class="t-stat-num">${(state.cards||[]).length}</span><span class="t-stat-lbl">Cards collected</span></div>
+    </div>
+    <div class="t-section">
+      <h3>Level management</h3>
+      <div class="t-level-card">
+        <div class="t-level-title">Current level</div>
+        <div class="t-level-current">${esc(subLevelObj(currentSL).label)}</div>
+        <div class="t-level-grid">${SUB_LEVELS.map(sl=>`
+          <button class="t-level-btn${sl.id===currentSL?' active-lvl':''}" onclick="teacherSetLevelFor('${entry.uid}','${sl.id}')">
+            ${sl.id}<small>${sl.cefr}</small>
+          </button>`).join('')}</div>
+      </div>
+    </div>
+    <div class="t-section">
+      <h3>Session history</h3>
+      <div id="tHistory">${renderHistoryHtml(sessions)}</div>
+    </div>
+    <button class="copy-btn" onclick="copyReport()">📋 Copy WhatsApp report</button>`;
+  dash.innerHTML=html;
+}
+
+function renderHistoryHtml(sessions){
+  if(!sessions.length) return '<p style="color:var(--ink-faint);font-size:0.84rem">No sessions yet.</p>';
   const byDate={};
   sessions.slice().reverse().forEach(s=>{
     const d=new Date(s.timestamp).toLocaleDateString('en-GB',{weekday:'short',month:'short',day:'numeric'});
     if(!byDate[d])byDate[d]={date:d,items:[]};
     byDate[d].items.push(s);
   });
-  $('tHistory').innerHTML=Object.entries(byDate).map(([d,g])=>`
+  return Object.entries(byDate).map(([d,g])=>`
     <div class="t-item" onclick="this.classList.toggle('open')">
       <div class="t-item-head">
         <span class="t-item-date">${esc(d)}</span>
@@ -1147,26 +1377,81 @@ function renderTeacher(){
     </div>`).join('');
 }
 
-async function teacherSetLevel(levelId){
-  if(!confirm(`Set student level to ${levelId}?`)) return;
-  state.subLevel=levelId;
-  state.sessionInTheme=0;
-  await saveState();
-  renderTeacher();
-  renderLevelDisplay();
-  renderCycleDots();
-  alert(`✓ Level updated to ${subLevelObj(levelId).label}. Next lesson will be at this level.`);
+async function teacherSetLevelFor(studentUid,levelId){
+  if(!confirm(`Set this student's level to ${levelId}?`)) return;
+  try{
+    await window._db.collection('users').doc(studentUid).update({
+      'state.subLevel':levelId,
+      'state.sessionInTheme':0,
+    });
+    const entry=teacherStudents.find(s=>s.uid===studentUid);
+    if(entry){entry.data.state={...(entry.data.state||{}),subLevel:levelId,sessionInTheme:0};}
+    renderTeacherDashboard();
+    alert(`✓ Level updated to ${subLevelObj(levelId).label}. Their next lesson will be at this level.`);
+  }catch(e){
+    alert('Could not update level: '+e.message);
+  }
 }
 
 function copyReport(){
+  const entry=teacherStudents.find(s=>s.uid===activeStudentUid);
+  if(!entry)return;
+  const state=entry.data.state||{};
   const sessions=state.sessions||[];const recent=sessions.slice(-7);
   const qr=recent.filter(x=>x.quizResult==='correct').length;
   const qt=recent.filter(x=>x.quizResult).length;
   const moods=recent.filter(x=>x.emoji).map(x=>x.emoji).join(' ')||'—';
   const sl=subLevelObj(state.subLevel||'A1.1');
-  const text=`📊 English Daily — Progress Report\n👤 ${profile.name||'Student'}\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n🎓 Level: ${sl.label}\n📚 Total lessons: ${state.totalSentences||0}\n🔥 Streak: ${state.streak||0} days\n✅ Quiz (last 7): ${qr}/${qt}\n🧩 Cards: ${(state.cards||[]).length}\n😊 Mood: ${moods}`;
+  const text=`📊 English Daily — Progress Report\n👤 ${entry.data.name||'Student'}\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n🎓 Level: ${sl.label}\n📚 Total lessons: ${state.totalSentences||0}\n🔥 Streak: ${state.streak||0} days\n✅ Quiz (last 7): ${qr}/${qt}\n🧩 Cards: ${(state.cards||[]).length}\n😊 Mood: ${moods}`;
   navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>prompt('Copy:',text));
 }
+
+/* ══ ASK-THE-TEACHER — teacher side (in-app dashboard alert) ══
+ * Live Firestore listener so unresolved questions show up on the
+ * Questions badge without the teacher needing to refresh.
+ * ══════════════════════════════════════════════════════════ */
+let _teacherRequests=[];
+function listenTeacherRequests(){
+  if(teacherRequestsUnsub){teacherRequestsUnsub();teacherRequestsUnsub=null;}
+  if(!teacherStudents.length){_teacherRequests=[];renderTeacherRequestsList();return;}
+  const uids=teacherStudents.map(s=>s.uid).slice(0,10); // Firestore 'in' supports up to 10
+  teacherRequestsUnsub=window._db.collection('teacherRequests')
+    .where('studentUid','in',uids)
+    .onSnapshot(snap=>{
+      _teacherRequests=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+      renderTeacherRequestsList();
+    },err=>console.error('teacherRequests listener error:',err));
+}
+function renderTeacherRequestsList(){
+  const badge=$('teacherRequestsBadge');
+  const list=$('teacherRequestsList');
+  const forActive=_teacherRequests.filter(r=>!activeStudentUid||r.studentUid===activeStudentUid);
+  const unresolved=forActive.filter(r=>!r.resolved);
+  if(badge){
+    badge.textContent=unresolved.length;
+    badge.style.display=unresolved.length?'inline-flex':'none';
+  }
+  if(!list)return;
+  if(!forActive.length){list.innerHTML='<p style="color:var(--ink-faint);font-size:0.84rem">No questions yet.</p>';return;}
+  list.innerHTML=forActive.map(r=>`
+    <div class="t-item${r.resolved?'':' open'}">
+      <div class="t-item-head" style="cursor:default">
+        <span class="t-item-date">${r.resolved?'✓ ':'🙋 '}${esc(new Date(r.timestamp).toLocaleString('en-GB'))}</span>
+        ${r.resolved?'':`<button class="filter-btn" onclick="resolveTeacherRequest('${r.id}')">Mark handled</button>`}
+      </div>
+      <div class="t-item-body" style="display:block">
+        <strong>${esc(r.studentName||'Student')}</strong> got stuck on:<br>
+        <em>${esc(r.lessonEnglish||'(lesson not recorded)')}</em>
+        ${r.note?`<br><br>"${esc(r.note)}"`:'<br><br><span style="color:var(--ink-faint)">No message — just flagged as stuck.</span>'}
+      </div>
+    </div>`).join('');
+}
+async function resolveTeacherRequest(id){
+  try{ await window._db.collection('teacherRequests').doc(id).update({resolved:true}); }
+  catch(e){ alert('Could not update: '+e.message); }
+}
+
 </script>
 </body>
 </html>
