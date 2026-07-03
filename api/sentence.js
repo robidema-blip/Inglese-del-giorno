@@ -77,6 +77,12 @@ export default async function handler(req, res) {
   const sl        = SUB_LEVELS[subLevel] || SUB_LEVELS['A1.1'];
   const theme     = THEMES[themeId] || THEMES[1];
   const nativeName = NATIVE_LANG_NAMES[nativeLang] || 'Italian';
+  // Quiz/comprehension-check language: native language through B1 (so a
+  // beginner isn't blocked from answering by not understanding the
+  // question itself), English from B2 upward, where the student should
+  // be fluent enough that reading the question in English is itself good
+  // practice rather than a barrier.
+  const quizLang = ['B2', 'C1'].includes(sl.cefr) ? 'English' : nativeName;
   const usedList  = usedCompoundWords.length
     ? `Compound words already used (do NOT repeat): ${usedCompoundWords.join(', ')}.`
     : '';
@@ -122,10 +128,10 @@ Respond ONLY in this exact JSON, no markdown, no preamble:
   ],
   "vocab": [{"en":"word","native":"${nativeName} translation"}],
   "grammarFocus": "Main grammar point in ${nativeName}",
-  "comprehensionQuestion": "Question in ${nativeName}",
-  "comprehensionCorrect": "Correct answer in ${nativeName}",
-  "comprehensionWrong1": "Wrong answer 1 in ${nativeName}",
-  "comprehensionWrong2": "Wrong answer 2 in ${nativeName}"
+  "comprehensionQuestion": "Question in ${quizLang}",
+  "comprehensionCorrect": "Correct answer in ${quizLang}",
+  "comprehensionWrong1": "Wrong answer 1 in ${quizLang}",
+  "comprehensionWrong2": "Wrong answer 2 in ${quizLang}"
 }`;
 
     return callClaude(prompt, 2000, res);
@@ -177,11 +183,11 @@ Respond ONLY in this exact JSON, no markdown:
     "hint": "Guiding question in ${nativeName}",
     "explanation": "How the two parts combine, in ${nativeName}"
   },
-  "quizQuestion": "Quiz question in ${nativeName} about a key word in the sentence",
-  "quizCorrect": "Correct answer in ${nativeName}",
-  "quizWrong1": "Plausible wrong answer in ${nativeName}",
-  "quizWrong2": "Plausible wrong answer in ${nativeName}",
-  "quizWrong3": "Plausible wrong answer in ${nativeName}"
+  "quizQuestion": "Quiz question in ${quizLang} about a key word in the sentence",
+  "quizCorrect": "Correct answer in ${quizLang}",
+  "quizWrong1": "Plausible wrong answer in ${quizLang}",
+  "quizWrong2": "Plausible wrong answer in ${quizLang}",
+  "quizWrong3": "Plausible wrong answer in ${quizLang}"
 }`;
 
   return callClaude(prompt, 1000, res);
