@@ -366,7 +366,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
         <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
         <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
         <button class="auth-btn" onclick="doLogin()">Sign in →</button>
-        <button type="button" class="today-cards-link" style="display:block;margin-top:0.8rem;text-align:center;width:100%;color:rgba(255,255,255,0.5)" onclick="doForgotPassword()">Forgot your password?</button>
+        <button type="button" id="forgotPasswordBtn" class="today-cards-link" style="display:block;margin-top:0.8rem;text-align:center;width:100%;color:rgba(255,255,255,0.5)" onclick="doForgotPassword()">Forgot your password?</button>
         <p id="forgotPasswordMsg" style="display:none;font-size:0.78rem;margin-top:0.5rem;text-align:center;line-height:1.5"></p>
       </div>
       <div id="signupForm" style="display:none">
@@ -802,7 +802,9 @@ async function doLogin(){
  * whether the email is actually registered, so this can't be used
  * to check which emails have accounts (basic privacy hygiene).
  * ══════════════════════════════════════════════════════════ */
+let _forgotPasswordCooldown=false;
 async function doForgotPassword(){
+  if(_forgotPasswordCooldown)return; // guards against double-click / impatient re-tap firing a second reset email that invalidates the first one's link
   const email=$('loginEmail').value.trim();
   const msg=$('forgotPasswordMsg');
   if(!email){
@@ -811,8 +813,24 @@ async function doForgotPassword(){
     msg.style.display='block';
     return;
   }
+  const btn=$('forgotPasswordBtn');
+  _forgotPasswordCooldown=true;
+  btn.disabled=true;
+  let secondsLeft=30;
+  btn.textContent=`Sent — you can resend in ${secondsLeft}s`;
+  const countdown=setInterval(()=>{
+    secondsLeft--;
+    if(secondsLeft<=0){
+      clearInterval(countdown);
+      btn.textContent='Forgot your password?';
+      btn.disabled=false;
+      _forgotPasswordCooldown=false;
+    }else{
+      btn.textContent=`Sent — you can resend in ${secondsLeft}s`;
+    }
+  },1000);
   msg.style.color='var(--sage)';
-  msg.textContent=`If an account exists for ${email}, a reset link has been sent — check your inbox (and spam folder).`;
+  msg.textContent=`If an account exists for ${email}, a reset link has been sent — check your inbox (and spam folder). Only click it once, and use the newest email if you request more than one.`;
   msg.style.display='block';
   try{
     await window._auth.sendPasswordResetEmail(email);
