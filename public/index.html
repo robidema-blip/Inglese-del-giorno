@@ -1658,6 +1658,15 @@ function renderTeacherDashboard(){
       <div class="t-stat"><span class="t-stat-num">${(state.cards||[]).length}</span><span class="t-stat-lbl">Cards collected</span></div>
     </div>
     <div class="t-section">
+      <h3>Account</h3>
+      <div class="t-level-card">
+        <div class="t-level-title">Password</div>
+        <button class="action-btn" onclick="resetStudentPassword('${entry.uid}')">🔑 Reset password</button>
+        <p style="font-size:0.76rem;color:var(--ink-faint);margin-top:0.6rem;line-height:1.5">Generates a new temporary password instantly — no email involved. You'll see it here to pass along directly.</p>
+        <div id="resetPwResult" style="display:none;margin-top:0.8rem"></div>
+      </div>
+    </div>
+    <div class="t-section">
       <h3>Level management</h3>
       <div class="t-level-card">
         <div class="t-level-title">Current level</div>
@@ -1726,6 +1735,42 @@ function copyReport(){
   const sl=subLevelObj(state.subLevel||'A1.1');
   const text=`📊 English Daily — Progress Report\n👤 ${entry.data.name||'Student'}\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n🎓 Level: ${sl.label}\n📚 Total lessons: ${state.totalSentences||0}\n🔥 Streak: ${state.streak||0} days\n✅ Quiz (last 7): ${qr}/${qt}\n🧩 Cards: ${(state.cards||[]).length}\n😊 Mood: ${moods}`;
   navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>prompt('Copy:',text));
+}
+
+/* ══ TEACHER-INITIATED PASSWORD RESET ══
+ * Bypasses email entirely — generates a new temp password server-side
+ * via Admin SDK and shows it right here for the teacher to relay
+ * (e.g. by WhatsApp/phone call) to the student.
+ * ══════════════════════════════════════════════════════════ */
+async function resetStudentPassword(studentUid){
+  const entry=teacherStudents.find(s=>s.uid===studentUid);
+  const name=entry&&entry.data&&entry.data.name?entry.data.name:'this student';
+  if(!confirm(`Generate a new password for ${name}? Their current password will stop working immediately, so only do this if you're about to tell them the new one.`))return;
+  const box=$('resetPwResult');
+  if(box){box.style.display='block';box.innerHTML='<p style="font-size:0.82rem;color:var(--ink-faint)">Generating…</p>';}
+  try{
+    const idToken=await window._auth.currentUser.getIdToken(true);
+    const resp=await fetch('/api/reset-student-password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken,studentUid})
+    });
+    const data=await resp.json();
+    if(!resp.ok||!data.ok){
+      if(box)box.innerHTML=`<p style="font-size:0.82rem;color:#c03030">${esc(data.error||'Could not reset password.')}</p>`;
+      return;
+    }
+    if(box){
+      box.innerHTML=`
+        <div style="background:var(--paper-warm);border:1.5px solid var(--border);border-radius:10px;padding:0.8rem">
+          <div style="font-size:0.78rem;color:var(--ink-faint);margin-bottom:0.3rem">New temporary password for ${esc(data.studentName||name)}:</div>
+          <div style="font-size:1.05rem;font-weight:700;letter-spacing:0.03em;font-family:monospace;margin-bottom:0.6rem">${esc(data.newPassword)}</div>
+          <button class="action-btn" onclick="navigator.clipboard.writeText('${data.newPassword}').then(()=>alert('Copied!'))">📋 Copy password</button>
+        </div>`;
+    }
+  }catch(err){
+    if(box)box.innerHTML=`<p style="font-size:0.82rem;color:#c03030">Network error: ${esc(err.message)}</p>`;
+  }
 }
 
 /* ══ ASK-THE-TEACHER — teacher side (in-app dashboard alert) ══
