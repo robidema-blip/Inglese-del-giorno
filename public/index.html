@@ -366,6 +366,8 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
         <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
         <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
         <button class="auth-btn" onclick="doLogin()">Sign in →</button>
+        <button type="button" class="today-cards-link" style="display:block;margin-top:0.8rem;text-align:center;width:100%;color:rgba(255,255,255,0.5)" onclick="doForgotPassword()">Forgot your password?</button>
+        <p id="forgotPasswordMsg" style="display:none;font-size:0.78rem;margin-top:0.5rem;text-align:center;line-height:1.5"></p>
       </div>
       <div id="signupForm" style="display:none">
         <div class="form-group"><label>Your name</label><input type="text" id="signupName" placeholder="Maria"></div>
@@ -791,6 +793,36 @@ async function doLogin(){
   const pass=$('loginPassword').value;
   try{await window._auth.signInWithEmailAndPassword(email,pass);}
   catch(e){showAuthError('Incorrect email or password.');}
+}
+
+/* ══ FORGOT PASSWORD ═════════════════════════════════════════
+ * Uses Firebase Auth's built-in reset-email flow directly — no
+ * new backend endpoint, no Resend usage, no added cost. Always
+ * shows the same "if an account exists..." message regardless of
+ * whether the email is actually registered, so this can't be used
+ * to check which emails have accounts (basic privacy hygiene).
+ * ══════════════════════════════════════════════════════════ */
+async function doForgotPassword(){
+  const email=$('loginEmail').value.trim();
+  const msg=$('forgotPasswordMsg');
+  if(!email){
+    msg.style.color='#e07272';
+    msg.textContent='Enter your email above first, then tap this again.';
+    msg.style.display='block';
+    return;
+  }
+  msg.style.color='var(--sage)';
+  msg.textContent=`If an account exists for ${email}, a reset link has been sent — check your inbox (and spam folder).`;
+  msg.style.display='block';
+  try{
+    await window._auth.sendPasswordResetEmail(email);
+  }catch(e){
+    if(e.code!=='auth/user-not-found'){
+      msg.style.color='#e07272';
+      msg.textContent='Could not send reset email: '+e.message;
+    }
+    // auth/user-not-found stays on the generic message above on purpose.
+  }
 }
 function doLogout(){
   if(teacherRequestsUnsub){teacherRequestsUnsub();teacherRequestsUnsub=null;}
