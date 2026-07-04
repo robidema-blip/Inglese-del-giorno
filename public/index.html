@@ -253,6 +253,19 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .dictation-input{width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:0.92rem;margin-bottom:0.7rem;background:var(--warm-white);color:var(--ink);}
 .dictation-input:focus{outline:none;border-color:var(--terra);}
 
+/* ══ ARCHIVE VIEWER MODAL ══════════════════════════════════ */
+.archive-modal-overlay{position:fixed;inset:0;background:rgba(15,17,23,0.72);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+@media (min-width:700px){.archive-modal-overlay{align-items:center;}}
+.archive-modal-card{background:var(--cream);width:100%;max-width:560px;max-height:88vh;border-radius:20px 20px 0 0;overflow-y:auto;animation:celebrateIn 0.25s ease both;}
+@media (min-width:700px){.archive-modal-card{border-radius:20px;}}
+.archive-modal-head{position:sticky;top:0;background:var(--night);color:#fff;padding:0.9rem 1.2rem;display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;font-weight:600;letter-spacing:0.03em;z-index:1;}
+.archive-modal-body{padding:1.3rem;}
+.archive-tag{display:inline-block;background:var(--gold-bg);color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.2rem 0.6rem;border-radius:10px;margin-bottom:0.8rem;}
+.recap-card{background:var(--night-2);border:1px solid var(--border-night);border-radius:14px;padding:0.9rem 1.1rem;margin-bottom:1rem;cursor:pointer;transition:border-color 0.15s;}
+.recap-card:hover{border-color:var(--terra);}
+.recap-card-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:0.3rem;}
+.recap-card-text{font-family:'Lora',serif;font-style:italic;color:#fff;font-size:0.88rem;}
+
 /* review */
 .review-day{background:var(--warm-white);border:1px solid var(--border);border-radius:14px;margin-bottom:0.7rem;overflow:hidden;}
 .review-day-head{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 1.1rem;cursor:pointer;}
@@ -485,6 +498,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
     <!-- LESSON TAB -->
     <div id="tab-lesson">
       <div id="celebrateBanner"></div>
+      <div id="recapCard"></div>
       <div class="date-row" id="dateDisplay"></div>
       <!-- cycle dots -->
       <div class="cycle-bar-wrap">
@@ -610,6 +624,17 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
   </div>
 </div>
 
+<!-- ══ ARCHIVE VIEWER (replay a past lesson exactly) ══════════ -->
+<div id="archiveModal" class="archive-modal-overlay hidden" onclick="if(event.target===this)closeArchiveModal()">
+  <div class="archive-modal-card">
+    <div class="archive-modal-head">
+      <span id="archiveModalDate"></span>
+      <button class="celebrate-dismiss" style="background:var(--border)" onclick="closeArchiveModal()">✕</button>
+    </div>
+    <div class="archive-modal-body" id="archiveModalBody"></div>
+  </div>
+</div>
+
 <script>
 /* ══ SUB-LEVEL MAP (mirrors sentence.js) ════════════════════ */
 const SUB_LEVELS = [
@@ -639,7 +664,7 @@ let state={
   subLevel:'A1.1',
   totalSentences:0, streak:0, lastDate:'', quizCorrect:0,
   sessions:[], cards:[], boosterWords:[],
-  themeId:1, sessionInTheme:0,
+  themeId:1, sessionInTheme:0, lessonsAtThisLevel:0,
   usedCompoundWords:[],
   cyclesCompleted:0,
 };
@@ -834,6 +859,7 @@ function bootApp(){
   updateStats();
   renderLevelDisplay();
   renderCycleDots();
+  renderRecapCard();
   getNewSentence();
 }
 
@@ -967,6 +993,7 @@ async function getNewSentence(){
         sessionInTheme:state.sessionInTheme||0,
         usedCompoundWords:state.usedCompoundWords||[],
         mode:isReading?'reading':'lesson',
+        lessonsAtThisLevel:state.lessonsAtThisLevel||0,
       }),
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error||'API error');}
@@ -975,6 +1002,7 @@ async function getNewSentence(){
     else renderSentence(currentSentence);
 
     // Advance state
+    state.lessonsAtThisLevel=(state.lessonsAtThisLevel||0)+1;
     state.sessionInTheme=(state.sessionInTheme||0)+1;
     if(state.sessionInTheme>=12){
       state.sessionInTheme=0;
@@ -985,6 +1013,7 @@ async function getNewSentence(){
         const idx=SUB_LEVELS.findIndex(s=>s.id===(state.subLevel||'A1.1'));
         if(idx<SUB_LEVELS.length-1){
           state.subLevel=SUB_LEVELS[idx+1].id;
+          state.lessonsAtThisLevel=0; // fresh grammar ceiling at the new level
           setTimeout(()=>showCelebration('🎓',`Level up: ${SUB_LEVELS[idx+1].label}`,'Two full cycles done at the last level — nice work.'),300);
         }
       }
@@ -995,7 +1024,12 @@ async function getNewSentence(){
     if(currentSentence.compoundWords)
       currentSentence.compoundWords.forEach(c=>{if(c.word) state.usedCompoundWords=[...new Set([...(state.usedCompoundWords||[]),c.word])];});
 
-    state.sessions=[...(state.sessions||[]).slice(-300),{
+    // Capped at 120 (roughly 4 months of daily lessons) rather than 300 —
+    // each session now stores the FULL lesson (not just a summary) so it can
+    // be replayed exactly from the Review tab, which is a bigger payload per
+    // entry, so the cap comes down to stay comfortably under Firestore's
+    // per-document size limit.
+    state.sessions=[...(state.sessions||[]).slice(-120),{
       timestamp:Date.now(),
       english:currentSentence.english||(currentSentence.title||''),
       translation:currentSentence.translation||(currentSentence.paragraphTranslations?.[0]||''),
@@ -1004,6 +1038,7 @@ async function getNewSentence(){
       quizResult:null, emoji:null,
       type:isReading?'reading':'lesson',
       compoundWord:currentSentence.compoundWord?.word||null,
+      full:currentSentence,
     }];
     addVocabCards(currentSentence);
     renderTodayCards(currentSentence);
@@ -1474,6 +1509,7 @@ function renderReview(){
         ${s.type==='reading'?'<span class="review-tag" style="margin-left:0.3rem;background:rgba(201,168,76,0.12);color:var(--gold)">🎓 Reading</span>':''}
         ${s.quizResult?`<span class="review-tag" style="margin-left:0.3rem;background:${s.quizResult==='correct'?'rgba(107,158,114,0.15)':'rgba(224,82,82,0.1)'};color:${s.quizResult==='correct'?'var(--sage)':'#c03030'}">${s.quizResult==='correct'?'✓':'✗'} Quiz</span>`:''}
         ${s.emoji?`<span style="margin-left:0.3rem">${s.emoji}</span>`:''}
+        ${s.full?`<button class="today-cards-link" style="display:block;margin-top:0.4rem" onclick="event.stopPropagation();openArchiveModal(state.sessions.find(x=>x.timestamp===${s.timestamp}))">▶ View full lesson</button>`:''}
       </div>`).join('')}</div>
     </div>`).join('');
 }
@@ -1618,9 +1654,10 @@ async function teacherSetLevelFor(studentUid,levelId){
     await window._db.collection('users').doc(studentUid).update({
       'state.subLevel':levelId,
       'state.sessionInTheme':0,
+      'state.lessonsAtThisLevel':0,
     });
     const entry=teacherStudents.find(s=>s.uid===studentUid);
-    if(entry){entry.data.state={...(entry.data.state||{}),subLevel:levelId,sessionInTheme:0};}
+    if(entry){entry.data.state={...(entry.data.state||{}),subLevel:levelId,sessionInTheme:0,lessonsAtThisLevel:0};}
     renderTeacherDashboard();
     alert(`✓ Level updated to ${subLevelObj(levelId).label}. Their next lesson will be at this level.`);
   }catch(e){
@@ -1747,6 +1784,87 @@ function renderBoosterGrid(){
         </div>
       </div>
     </div>`).join('');
+}
+
+
+/* ══ ARCHIVE VIEWER — replay a past lesson exactly ══════════
+ * Sessions saved from this point on carry the full AI response
+ * (session.full), so we can re-render the original lesson rather
+ * than just the trimmed summary Review already showed. Older
+ * sessions (saved before this feature existed) won't have `full`
+ * — we fall back to the summary gracefully rather than breaking.
+ * This is a READ-ONLY view: no quiz/scramble/dictation/ask-teacher,
+ * no state mutation, no new cards added.
+ * ══════════════════════════════════════════════════════════ */
+function openArchiveModal(session){
+  if(!session)return;
+  $('archiveModalDate').textContent='📅 '+new Date(session.timestamp).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  $('archiveModalBody').innerHTML=renderArchivedContent(session);
+  $('archiveModal').classList.remove('hidden');
+}
+function closeArchiveModal(){
+  $('archiveModal').classList.add('hidden');
+  $('archiveModalBody').innerHTML='';
+}
+function renderArchivedContent(session){
+  const s=session.full;
+  if(!s){
+    return `<p style="color:var(--ink-faint);font-size:0.88rem;line-height:1.6">
+      Full replay isn't available for this lesson — it was saved before this feature existed.
+      Here's what was recorded:<br><br>
+      <strong>${esc(session.english||'')}</strong><br>${esc(session.translation||'')}
+    </p>`;
+  }
+  if(session.type==='reading'){
+    let highlighted=(txt)=>{
+      let out=esc(txt);
+      (s.compoundWords||[]).forEach(w=>{if(w.word)out=out.replace(new RegExp(`(${w.word})`,'gi'),'<span class="reading-highlight">$1</span>');});
+      return out;
+    };
+    return `<span class="archive-tag">🎓 Reading challenge</span>
+      <div class="reading-title">${esc(s.title||'')}</div>
+      <div class="reading-body">${(s.paragraphs||[]).map(p=>`<p>${highlighted(p)}</p>`).join('')}</div>
+      <div class="reading-translation show">${(s.paragraphTranslations||[]).map(p=>`<p>${esc(p)}</p>`).join('')}</div>
+      ${s.vocab?.length?`<div class="vocab-row" style="margin-top:1rem">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
+      <button class="listen-btn" style="margin-top:1rem" onclick="speakReading(${JSON.stringify((s.paragraphs||[]).join(' ')).replace(/"/g,'&quot;')})">🔊 Listen to full text</button>
+      ${s.comprehensionQuestion?`<div class="reading-comprehension" style="margin-top:1rem"><div class="reading-comprehension-label">📖 Comprehension check</div><div class="reading-q">${esc(s.comprehensionQuestion)}</div><div style="font-size:0.85rem;color:var(--sage)">✓ ${esc(s.comprehensionCorrect||'')}</div></div>`:''}`;
+  }
+  let highlighted=esc(s.english||'');
+  if(s.compoundWord?.word){
+    highlighted=highlighted.replace(new RegExp(`(${s.compoundWord.word})`,'gi'),'<span class="compound-highlight">$1</span>');
+  }
+  return `<span class="archive-tag">${esc(session.subLevel||'')}</span>
+    <div class="sentence-en">${highlighted}</div>
+    <div class="phonetic">${esc(s.phonetic||'')}</div>
+    <div class="sentence-native">${esc(s.translation||'')}</div>
+    <span class="grammar-badge">${esc(s.grammarConcept||'')}</span>
+    <div class="tip-text">${esc(s.tip||'')}</div>
+    ${s.vocab?.length?`<div class="vocab-row">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
+    <button class="listen-btn" onclick="speak(${JSON.stringify(s.english||'').replace(/"/g,'&quot;')})">🔊 Listen</button>
+    ${s.compoundWord?`<div class="compound-card" style="margin-top:1rem">
+      <div class="compound-label">🧩 Compound word</div>
+      <div class="compound-answer">✦ ${esc(s.compoundWord.word)} = ${esc(s.compoundWord.combined||'')}</div>
+      <div class="compound-explain">${esc(s.compoundWord.explanation||'')}</div>
+    </div>`:''}
+    ${session.quizResult?`<p style="margin-top:1rem;font-size:0.83rem;color:${session.quizResult==='correct'?'var(--sage)':'#c03030'}">${session.quizResult==='correct'?'✓ You got the quiz right that day.':'✗ You missed the quiz that day — the correct answer was: '+esc(s.quizCorrect||'')}</p>`:''}`;
+}
+
+/* ══ YESTERDAY'S RECAP ═══════════════════════════════════════
+ * A quiet nudge toward repetition, per feedback that new content
+ * was moving faster than it should — shows the most recent past
+ * lesson (if any) right on the lesson tab, opening the same
+ * read-only archive viewer when tapped.
+ * ══════════════════════════════════════════════════════════ */
+function renderRecapCard(){
+  const el=$('recapCard');
+  if(!el)return;
+  const sessions=state.sessions||[];
+  if(!sessions.length){el.innerHTML='';return;}
+  const last=sessions[sessions.length-1];
+  el.innerHTML=`<div class="recap-card" onclick='openArchiveModal(state.sessions[state.sessions.length-1])'>
+    <div class="recap-card-label">📌 Recap — your last lesson</div>
+    <div class="recap-card-text">${esc(last.english||'')}</div>
+  </div>`;
 }
 
 </script>
