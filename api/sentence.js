@@ -72,6 +72,7 @@ export default async function handler(req, res) {
     sessionInTheme = 0,   // 0–11
     usedCompoundWords = [],
     mode         = 'lesson',
+    lessonsAtThisLevel = 0, // how many lessons the student has had AT this exact sub-level (resets only on promotion, not on cycle rollover) — used to build a cumulative "grammar introduced so far" allow-list, so content can't jump ahead of what's actually been taught.
   } = req.body;
 
   const sl        = SUB_LEVELS[subLevel] || SUB_LEVELS['A1.1'];
@@ -90,6 +91,19 @@ export default async function handler(req, res) {
   // Grammar point for this session (rotate through scope list)
   const grammarPoint = sl.grammarScope[sessionInTheme % sl.grammarScope.length];
 
+  // Cumulative "grammar introduced so far" — everything from sub-levels
+  // already fully passed through, plus however much of the current
+  // sub-level's own rotation has actually happened. This is the hard
+  // ceiling the AI is told not to exceed, so a student two lessons into
+  // A1.1 never sees a phrasal verb or an irregular past tense that isn't
+  // due until much later.
+  const subLevelIds = Object.keys(SUB_LEVELS);
+  const curLevelIdx  = Math.max(0, subLevelIds.indexOf(subLevel));
+  const priorGrammar = subLevelIds.slice(0, curLevelIdx).flatMap(id => SUB_LEVELS[id].grammarScope);
+  const introducedHere = sl.grammarScope.slice(0, Math.max(1, Math.min(lessonsAtThisLevel + 1, sl.grammarScope.length)));
+  const cumulativeGrammar = [...priorGrammar, ...introducedHere];
+  const isVeryFirstLesson = curLevelIdx === 0 && lessonsAtThisLevel === 0;
+
   // Sentence complexity escalates within the cycle
   let complexity;
   if (sessionInTheme < 4)       complexity = sl.complexity;
@@ -104,15 +118,22 @@ export default async function handler(req, res) {
     const wordCount = cefr === 'A1' ? '60–90' : cefr === 'A2' ? '80–120' : cefr === 'B1' ? '120–160' : cefr === 'B2' ? '150–200' : '180–250';
 
     const prompt = `You are an expert English teacher writing a reading challenge for a ${nativeName}-speaking student.
+This is a capstone for the cycle they just finished — it should feel like a natural step up
+from their daily lessons, not a jump into unfamiliar grammar.
 
 Student sub-level: ${sl.label} (${cefr})
 Theme: "${theme}"
-Grammar focus for this cycle: ${sl.grammarScope.join(', ')}
+Grammar the student has been taught so far, cumulatively: ${cumulativeGrammar.join(', ')}
 
 Write a short, engaging passage of exactly ${paraCount} paragraphs, total ${wordCount} words.
 - Write like a real article or blog post — natural, not textbook
-- Grammar structures used must match ${cefr} level
-- Include 2 true compound words (both halves must be standalone English words, e.g. sunscreen, doorstep, bookshelf, headphones). ${usedList}
+- Grammar structures used must stay within what's listed above as already taught — this is a
+  review/consolidation piece, not the place to introduce something new
+- Avoid phrasal verbs and irregular past tense unless "past simple irregular" is in the list above
+- Include 2 true compound words, where BOTH halves are complete standalone modern English words
+  (not a suffix like -ing/-er/-tion/-ed/-ly, and not an archaic word). GOOD: sunscreen, doorstep,
+  bookshelf, headphones, breakfast, afternoon. BAD: morning, evening (both end in the suffix
+  "-ing", not the word "ing") — verify each half is a real standalone word before using it. ${usedList}
 - Comprehension question and 3 answer options
 - Translate each paragraph to ${nativeName}
 - Key vocabulary list (5 words from the text)
@@ -139,24 +160,44 @@ Respond ONLY in this exact JSON, no markdown, no preamble:
 
   // ── STANDARD LESSON ──────────────────────────────────────────
   const prompt = `You are an expert English teacher creating a daily lesson for a ${nativeName}-speaking student.
+You specialize in true beginners and never rush — a real teacher reviewing your lessons
+flagged that past output introduced grammar too quickly, so follow the constraints below
+strictly even if a more "natural-sounding" sentence tempts you to go further.
 
 Student sub-level: ${sl.label} (CEFR: ${sl.cefr})
 Theme: "${theme}" (lesson ${sessionInTheme + 1} of 12 in this cycle)
-Grammar focus: ${grammarPoint}
+Grammar focus for TODAY: ${grammarPoint}
 Sentence complexity: ${complexityGuide}
 ${usedList}
+
+GRAMMAR CEILING — HARD RULE:
+The student has only been taught these grammar points so far, in this exact order:
+${cumulativeGrammar.map((g,i)=>`${i+1}. ${g}`).join('\n')}
+- Do NOT use any grammar structure that is not on this list. This includes phrasal verbs
+  (e.g. "wake up", "get up", "turn on", "look for") and irregular past-tense verbs UNLESS
+  "past simple irregular" is explicitly on the list above.
+- If ANY word in your sentence is a phrasal verb, or any irregular form not yet introduced,
+  rewrite the sentence with a simpler equivalent before responding.
+${isVeryFirstLesson ? '- This is this student\'s VERY FIRST lesson ever. Keep it as minimal as possible: a subject + "to be" + one simple word (e.g. "I am happy.", "She is here."). Nothing else.' : ''}
+- If the sentence contains an article ("a"/"an"/"the") or a preposition whose usage isn't
+  obvious from a literal translation (a common confusion point for learners), briefly explain
+  WHY it's used that way as a short second sentence inside the "tip" field — don't assume it's
+  self-evident just because it's not today's main grammar focus.
 
 YOUR TASK:
 1. Write ONE English sentence that:
    - Fits the theme naturally
    - Demonstrates the grammar point: ${grammarPoint}
+   - Obeys the grammar ceiling above — nothing beyond what's already been introduced
    - Matches exactly this complexity: ${complexityGuide}
    - Contains exactly ONE true compound word
 
-2. The compound word MUST be made of TWO standalone English dictionary words joined together.
-   GOOD: sunscreen (sun+screen), doorstep (door+step), bookshelf (book+shelf), headphones (head+phones), raincoat (rain+coat), weekend (week+end), footprint (foot+print), suitcase (suit+case), handbag (hand+bag), bedroom (bed+room).
-   BAD (never use): kitchen, garden, window, button, ticket, carpet, curtain — these are NOT compounds.
-   Verify: can you split the word into two real English words? If no → choose a different word.
+2. The compound word MUST be made of TWO standalone modern English words joined together,
+   where BOTH halves work as complete words on their own right now — not a suffix (-ing, -er,
+   -tion, -ed, -ly are NOT standalone words) and not an archaic word no learner would know.
+   GOOD: sunscreen (sun+screen), doorstep (door+step), bookshelf (book+shelf), headphones (head+phones), raincoat (rain+coat), weekend (week+end), footprint (foot+print), suitcase (suit+case), handbag (hand+bag), bedroom (bed+room), breakfast (break+fast), afternoon (after+noon).
+   BAD (never use): kitchen, garden, window, button, ticket, carpet, curtain, morning (morn+"ing" — "ing" is a suffix, not a word), evening (even+"ing" — same problem), understanding (same suffix problem) — these are NOT true compounds.
+   Verify: can you split the word into two real English words, BOTH still used as standalone words today? If either half fails → choose a different word.
 
 3. Grammar tip must be clear and in ${nativeName}, using the sentence as the example.
 
