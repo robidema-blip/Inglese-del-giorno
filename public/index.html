@@ -135,6 +135,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .sentence-en{font-family:'Playfair Display',serif;font-size:1.3rem;line-height:1.55;color:var(--ink);margin-bottom:0.55rem;}
 .compound-highlight{color:var(--terra);font-weight:700;border-bottom:2px solid var(--terra);}
 .complexity-badge{display:inline-block;background:rgba(193,103,74,0.08);color:var(--terra);font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:10px;margin-bottom:0.5rem;letter-spacing:0.06em;text-transform:uppercase;}
+.review-badge{display:inline-block;background:var(--gold-bg);color:var(--gold);font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:10px;margin-bottom:0.5rem;margin-right:0.4rem;letter-spacing:0.06em;text-transform:uppercase;border:1px solid var(--gold-border);}
 .phonetic{font-size:0.8rem;color:var(--ink-faint);font-style:italic;margin-bottom:0.8rem;}
 .sentence-native{font-size:0.93rem;color:var(--ink-soft);margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
 .grammar-badge{display:inline-block;background:var(--teal-bg);color:var(--teal);font-size:0.72rem;font-weight:600;padding:0.22rem 0.65rem;border-radius:20px;margin-bottom:0.55rem;}
@@ -676,6 +677,7 @@ let state={
   themeId:1, sessionInTheme:0, lessonsAtThisLevel:0,
   usedCompoundWords:[],
   cyclesCompleted:0,
+  grammarStats:{},
 };
 let signupRole='student';
 let isTeacherAccount=false;
@@ -1051,6 +1053,8 @@ async function getNewSentence(){
         usedCompoundWords:state.usedCompoundWords||[],
         mode:isReading?'reading':'lesson',
         lessonsAtThisLevel:state.lessonsAtThisLevel||0,
+        grammarHistory:Object.entries(state.grammarStats||{}).map(([key,v])=>({key,...v})),
+        lessonNumber:state.totalSentences||0,
       }),
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error||'API error');}
@@ -1076,6 +1080,12 @@ async function getNewSentence(){
       }
     }
     state.totalSentences=(state.totalSentences||0)+1;
+    if(currentSentence.grammarKey){
+      state.grammarStats=state.grammarStats||{};
+      const gs=state.grammarStats[currentSentence.grammarKey]||{correctStreak:0,wrongCount:0};
+      gs.lastLesson=state.totalSentences;
+      state.grammarStats[currentSentence.grammarKey]=gs;
+    }
     if(currentSentence.compoundWord?.word)
       state.usedCompoundWords=[...new Set([...(state.usedCompoundWords||[]),currentSentence.compoundWord.word])];
     if(currentSentence.compoundWords)
@@ -1120,6 +1130,7 @@ function renderSentence(s){
     highlighted=highlighted.replace(re,'<span class="compound-highlight">$1</span>');
   }
   $('mainCard').innerHTML=`<div class="fade-in">
+    ${s.isReview?'<div class="review-badge">🔁 Review</div>':''}
     ${s.complexity?`<div class="complexity-badge">${s.complexity.replace('_',' ')}</div>`:''}
     <div class="sentence-en">${highlighted}</div>
     <div class="phonetic">${esc(s.phonetic||'')}</div>
@@ -1330,6 +1341,12 @@ function checkAnswer(btn,correct){
   if(correct){btn.classList.add('correct');fb.className='quiz-feedback ok';fb.textContent='✓ Correct!';state.quizCorrect=(state.quizCorrect||0)+1;}
   else{btn.classList.add('wrong');fb.className='quiz-feedback no';fb.textContent='✗ Not quite — the correct answer is in green.';}
   if(state.sessions.length) state.sessions[state.sessions.length-1].quizResult=correct?'correct':'wrong';
+  if(state.sessions.length) state.sessions[state.sessions.length-1].pickedAnswer=(btn.textContent||'').replace(/^[A-Z]\.\s*/,'').trim();
+  if(currentSentence?.grammarKey && state.grammarStats?.[currentSentence.grammarKey]){
+    const gs=state.grammarStats[currentSentence.grammarKey];
+    if(correct){gs.correctStreak=(gs.correctStreak||0)+1;}
+    else{gs.correctStreak=0;gs.wrongCount=(gs.wrongCount||0)+1;}
+  }
   updateStats();saveState();
 }
 
@@ -1710,6 +1727,7 @@ function renderHistoryHtml(sessions){
         ${s.type==='reading'?'<strong>🎓 Reading:</strong> ':''}
         <strong>${esc(s.english)}</strong><br>${esc(s.translation)}<br>
         <em style="font-size:0.76rem;color:var(--ink-faint)">${esc(s.grammarConcept)} · ${esc(s.subLevel||'')}${s.compoundWord?' · 🧩 '+esc(s.compoundWord):''}${s.emoji?' · '+s.emoji:''}</em>
+        ${s.full?`<button class="today-cards-link" style="display:block;margin-top:0.4rem" onclick="event.stopPropagation();openArchiveModal((teacherStudents.find(t=>t.uid===activeStudentUid)?.data.state.sessions||[]).find(x=>x.timestamp===${s.timestamp}))">▶ View full lesson</button>`:''}
       </p>`).join('')}</div>
     </div>`).join('');
 }
@@ -1908,6 +1926,12 @@ function closeArchiveModal(){
   $('archiveModal').classList.add('hidden');
   $('archiveModalBody').innerHTML='';
 }
+function renderReplayOptions(options,pickedAnswer){
+  return `<div class="quiz-options" style="margin-top:1rem">${options.map((o,i)=>{
+    const cls=o.c?'correct':(pickedAnswer&&o.t===pickedAnswer?'wrong':'');
+    return `<button class="quiz-option${cls?' '+cls:''}" disabled>${String.fromCharCode(65+i)}. ${esc(o.t)}</button>`;
+  }).join('')}</div>`;
+}
 function renderArchivedContent(session){
   const s=session.full;
   if(!s){
@@ -1929,7 +1953,13 @@ function renderArchivedContent(session){
       <div class="reading-translation show">${(s.paragraphTranslations||[]).map(p=>`<p>${esc(p)}</p>`).join('')}</div>
       ${s.vocab?.length?`<div class="vocab-row" style="margin-top:1rem">${s.vocab.map(v=>`<div class="vocab-chip"><strong>${esc(v.en)}</strong> → ${esc(v.native||'')}</div>`).join('')}</div>`:''}
       <button class="listen-btn" style="margin-top:1rem" onclick="speakReading(${JSON.stringify((s.paragraphs||[]).join(' ')).replace(/"/g,'&quot;')})">🔊 Listen to full text</button>
-      ${s.comprehensionQuestion?`<div class="reading-comprehension" style="margin-top:1rem"><div class="reading-comprehension-label">📖 Comprehension check</div><div class="reading-q">${esc(s.comprehensionQuestion)}</div><div style="font-size:0.85rem;color:var(--sage)">✓ ${esc(s.comprehensionCorrect||'')}</div></div>`:''}`;
+      ${s.comprehensionQuestion?`<div class="reading-comprehension" style="margin-top:1rem">
+        <div class="reading-comprehension-label">📖 Comprehension check</div>
+        <div class="reading-q">${esc(s.comprehensionQuestion)}</div>
+        ${session.pickedAnswer
+          ? renderReplayOptions([{t:s.comprehensionCorrect,c:true},{t:s.comprehensionWrong1,c:false},{t:s.comprehensionWrong2,c:false}],session.pickedAnswer)
+          : `<div style="font-size:0.85rem;color:var(--sage)">✓ ${esc(s.comprehensionCorrect||'')}</div>`}
+      </div>`:''}`;
   }
   let highlighted=esc(s.english||'');
   if(s.compoundWord?.word){
@@ -1948,7 +1978,14 @@ function renderArchivedContent(session){
       <div class="compound-answer">✦ ${esc(s.compoundWord.word)} = ${esc(s.compoundWord.combined||'')}</div>
       <div class="compound-explain">${esc(s.compoundWord.explanation||'')}</div>
     </div>`:''}
-    ${session.quizResult?`<p style="margin-top:1rem;font-size:0.83rem;color:${session.quizResult==='correct'?'var(--sage)':'#c03030'}">${session.quizResult==='correct'?'✓ You got the quiz right that day.':'✗ You missed the quiz that day — the correct answer was: '+esc(s.quizCorrect||'')}</p>`:''}`;
+    ${session.quizResult?(session.pickedAnswer
+      ? `<div style="margin-top:1rem">
+          <div style="font-size:0.76rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:0.4rem">Quiz</div>
+          ${s.quizQuestion?`<div class="tip-text" style="margin-bottom:0.3rem">${esc(s.quizQuestion)}</div>`:''}
+          ${renderReplayOptions([{t:s.quizCorrect,c:true},{t:s.quizWrong1,c:false},{t:s.quizWrong2,c:false},{t:s.quizWrong3,c:false}],session.pickedAnswer)}
+        </div>`
+      : `<p style="margin-top:1rem;font-size:0.83rem;color:${session.quizResult==='correct'?'var(--sage)':'#c03030'}">${session.quizResult==='correct'?'✓ You got the quiz right that day.':'✗ You missed the quiz that day — the correct answer was: '+esc(s.quizCorrect||'')}</p>`
+    ):''}`;
 }
 
 /* ══ YESTERDAY'S RECAP ═══════════════════════════════════════
