@@ -56,6 +56,26 @@ function escalate(base, steps) {
   return COMPLEXITY_ORDER[Math.min(idx + steps, COMPLEXITY_ORDER.length - 1)];
 }
 
+// Spaced repetition: picks the best-scoring grammar point to review from
+// history, favouring points that are overdue (large gap since last seen)
+// and/or shaky (high wrongCount), while a strong correctStreak pushes a
+// point down the priority list since it doesn't need review yet.
+const REVIEW_MIN_GAP = 2;
+function pickReviewPoint(grammarHistory, currentLessonNumber) {
+  if (!Array.isArray(grammarHistory) || !grammarHistory.length) return null;
+  let best = null, bestScore = -Infinity;
+  for (const item of grammarHistory) {
+    if (!item || !item.key) continue;
+    const gap = currentLessonNumber - (item.lastLesson || 0);
+    if (gap < REVIEW_MIN_GAP) continue;
+    const wrongCount = item.wrongCount || 0;
+    const correctStreak = item.correctStreak || 0;
+    const score = gap * (1 + wrongCount * 0.5) - correctStreak * 2;
+    if (score > bestScore) { bestScore = score; best = item; }
+  }
+  return best;
+}
+
 const NATIVE_LANG_NAMES = {
   it:'Italian',es:'Spanish',fr:'French',pt:'Portuguese',de:'German',
   zh:'Mandarin Chinese',ko:'Korean',ja:'Japanese',ar:'Arabic',
@@ -73,6 +93,8 @@ export default async function handler(req, res) {
     usedCompoundWords = [],
     mode         = 'lesson',
     lessonsAtThisLevel = 0, // how many lessons the student has had AT this exact sub-level (resets only on promotion, not on cycle rollover) — used to build a cumulative "grammar introduced so far" allow-list, so content can't jump ahead of what's actually been taught.
+    grammarHistory = [], // spaced repetition: [{ key, lastLesson, correctStreak, wrongCount }]
+    lessonNumber   = 0,  // absolute lesson count, used to space out review slots
   } = req.body;
 
   const sl        = SUB_LEVELS[subLevel] || SUB_LEVELS['A1.1'];
@@ -88,9 +110,6 @@ export default async function handler(req, res) {
     ? `Compound words already used (do NOT repeat): ${usedCompoundWords.join(', ')}.`
     : '';
 
-  // Grammar point for this session (rotate through scope list)
-  const grammarPoint = sl.grammarScope[sessionInTheme % sl.grammarScope.length];
-
   // Cumulative "grammar introduced so far" — everything from sub-levels
   // already fully passed through, plus however much of the current
   // sub-level's own rotation has actually happened. This is the hard
@@ -103,6 +122,21 @@ export default async function handler(req, res) {
   const introducedHere = sl.grammarScope.slice(0, Math.max(1, Math.min(lessonsAtThisLevel + 1, sl.grammarScope.length)));
   const cumulativeGrammar = [...priorGrammar, ...introducedHere];
   const isVeryFirstLesson = curLevelIdx === 0 && lessonsAtThisLevel === 0;
+
+  // Grammar point for this session — normally rotates through the scope
+  // list, but every 3rd lesson in the cycle (never the very first lesson)
+  // becomes a spaced-repetition review slot instead, picked from grammar
+  // the student has already been taught (defence in depth: filtered to
+  // cumulativeGrammar so we never "review" something not yet taught).
+  const isReviewSlot = mode === 'lesson' && !isVeryFirstLesson &&
+    sessionInTheme > 0 && sessionInTheme % 3 === 2;
+  const eligibleHistory = grammarHistory.filter(h => cumulativeGrammar.includes(h.key));
+  const reviewCandidate = isReviewSlot ? pickReviewPoint(eligibleHistory, lessonNumber) : null;
+  const isReview = !!reviewCandidate;
+  const reviewOf = isReview ? reviewCandidate.key : null;
+  const grammarPoint = isReview
+    ? reviewCandidate.key
+    : sl.grammarScope[sessionInTheme % sl.grammarScope.length];
 
   // Sentence complexity escalates within the cycle
   let complexity;
@@ -195,6 +229,14 @@ or do in real life.
   rewrite the sentence with a different, sensible combination that still meets every requirement
   above (theme, grammar point, complexity, compound word) before responding.
 
+${isReview ? `
+SPACED REPETITION — REVIEW SLOT:
+This lesson is a review, not a first introduction. The grammar point "${grammarPoint}" was
+already taught to this student earlier. Write a fresh sentence in a new context — different
+vocabulary and situation than a typical first-teaching example — that still tests this same
+structure. Phrase the "tip" field as a brief reminder (e.g. start with "Remember:") rather than
+a first-time explanation, since the student has already learned this once.
+` : ''}
 YOUR TASK:
 1. Write ONE English sentence that:
    - Fits the theme naturally
@@ -244,10 +286,14 @@ Respond ONLY in this exact JSON, no markdown:
   "quizWrong3": "Plausible wrong answer in ${quizLang}"
 }`;
 
-  return callClaude(prompt, 1000, res);
+  return callClaude(prompt, 1000, res, {
+    grammarKey: grammarPoint,
+    isReview,
+    reviewOf,
+  });
 }
 
-async function callClaude(prompt, maxTokens, res) {
+async function callClaude(prompt, maxTokens, res, extraFields = null) {
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -269,7 +315,19 @@ async function callClaude(prompt, maxTokens, res) {
     const data = await response.json();
     const text = data.content.map(b => b.text || '').join('');
     const clean = text.replace(/```json|```/g, '').trim();
-    return res.status(200).json(JSON.parse(clean));
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+      return res.status(502).json({ error: 'The lesson generator returned an unexpected response. Please try again.' });
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(clean.slice(firstBrace, lastBrace + 1));
+    } catch {
+      return res.status(502).json({ error: 'The lesson generator returned an unexpected response. Please try again.' });
+    }
+    if (extraFields) Object.assign(parsed, extraFields);
+    return res.status(200).json(parsed);
   } catch (err) {
     console.error('sentence.js error:', err);
     return res.status(500).json({ error: 'Internal server error: ' + err.message });
