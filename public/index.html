@@ -135,6 +135,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .sentence-en{font-family:'Playfair Display',serif;font-size:1.3rem;line-height:1.55;color:var(--ink);margin-bottom:0.55rem;}
 .compound-highlight{color:var(--terra);font-weight:700;border-bottom:2px solid var(--terra);}
 .complexity-badge{display:inline-block;background:rgba(193,103,74,0.08);color:var(--terra);font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:10px;margin-bottom:0.5rem;letter-spacing:0.06em;text-transform:uppercase;}
+.review-badge{display:inline-block;background:var(--gold-bg);color:var(--gold);font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:10px;margin-bottom:0.5rem;margin-right:0.4rem;letter-spacing:0.06em;text-transform:uppercase;border:1px solid var(--gold-border);}
 .phonetic{font-size:0.8rem;color:var(--ink-faint);font-style:italic;margin-bottom:0.8rem;}
 .sentence-native{font-size:0.93rem;color:var(--ink-soft);margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
 .grammar-badge{display:inline-block;background:var(--teal-bg);color:var(--teal);font-size:0.72rem;font-weight:600;padding:0.22rem 0.65rem;border-radius:20px;margin-bottom:0.55rem;}
@@ -676,6 +677,7 @@ let state={
   themeId:1, sessionInTheme:0, lessonsAtThisLevel:0,
   usedCompoundWords:[],
   cyclesCompleted:0,
+  grammarStats:{},
 };
 let signupRole='student';
 let isTeacherAccount=false;
@@ -1051,6 +1053,8 @@ async function getNewSentence(){
         usedCompoundWords:state.usedCompoundWords||[],
         mode:isReading?'reading':'lesson',
         lessonsAtThisLevel:state.lessonsAtThisLevel||0,
+        grammarHistory:Object.entries(state.grammarStats||{}).map(([key,v])=>({key,...v})),
+        lessonNumber:state.totalSentences||0,
       }),
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error||'API error');}
@@ -1076,6 +1080,12 @@ async function getNewSentence(){
       }
     }
     state.totalSentences=(state.totalSentences||0)+1;
+    if(currentSentence.grammarKey){
+      state.grammarStats=state.grammarStats||{};
+      const gs=state.grammarStats[currentSentence.grammarKey]||{correctStreak:0,wrongCount:0};
+      gs.lastLesson=state.totalSentences;
+      state.grammarStats[currentSentence.grammarKey]=gs;
+    }
     if(currentSentence.compoundWord?.word)
       state.usedCompoundWords=[...new Set([...(state.usedCompoundWords||[]),currentSentence.compoundWord.word])];
     if(currentSentence.compoundWords)
@@ -1120,6 +1130,7 @@ function renderSentence(s){
     highlighted=highlighted.replace(re,'<span class="compound-highlight">$1</span>');
   }
   $('mainCard').innerHTML=`<div class="fade-in">
+    ${s.isReview?'<div class="review-badge">🔁 Review</div>':''}
     ${s.complexity?`<div class="complexity-badge">${s.complexity.replace('_',' ')}</div>`:''}
     <div class="sentence-en">${highlighted}</div>
     <div class="phonetic">${esc(s.phonetic||'')}</div>
@@ -1330,6 +1341,11 @@ function checkAnswer(btn,correct){
   if(correct){btn.classList.add('correct');fb.className='quiz-feedback ok';fb.textContent='✓ Correct!';state.quizCorrect=(state.quizCorrect||0)+1;}
   else{btn.classList.add('wrong');fb.className='quiz-feedback no';fb.textContent='✗ Not quite — the correct answer is in green.';}
   if(state.sessions.length) state.sessions[state.sessions.length-1].quizResult=correct?'correct':'wrong';
+  if(currentSentence?.grammarKey && state.grammarStats?.[currentSentence.grammarKey]){
+    const gs=state.grammarStats[currentSentence.grammarKey];
+    if(correct){gs.correctStreak=(gs.correctStreak||0)+1;}
+    else{gs.correctStreak=0;gs.wrongCount=(gs.wrongCount||0)+1;}
+  }
   updateStats();saveState();
 }
 
