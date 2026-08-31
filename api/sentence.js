@@ -159,8 +159,21 @@ Student sub-level: ${sl.label} (${cefr})
 Theme: "${theme}"
 Grammar the student has been taught so far, cumulatively: ${cumulativeGrammar.join(', ')}
 
+REAL-WORLD PLAUSIBILITY — HARD RULE:
+A sentence can be grammatically perfect and still be nonsense — e.g. "My backpack is with my
+books" pairs real nouns and a real verb, but no real person would plausibly say it. Every
+sentence in every paragraph must describe something a real person could actually think, say, or
+do in real life.
+- Before finalizing, check each sentence: does this specific combination of subject + action +
+  object/time/place make ordinary real-world sense, not just grammatical sense?
+- If any sentence's combination is implausible or absurd (even if each word is correct and
+  on-level), rewrite that sentence with a different, sensible combination before responding —
+  don't let an odd sentence slip through just because the paragraph around it reads fine.
+
 Write a short, engaging passage of exactly ${paraCount} paragraphs, total ${wordCount} words.
 - Write like a real article or blog post — natural, not textbook
+- Every sentence must describe something a real person would plausibly think, say, or do — not
+  just grammatically correct but semantically sensible
 - Grammar structures used must stay within what's listed above as already taught — this is a
   review/consolidation piece, not the place to introduce something new
 - Avoid phrasal verbs and irregular past tense unless "past simple irregular" is in the list above
