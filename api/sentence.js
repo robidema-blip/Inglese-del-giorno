@@ -331,12 +331,14 @@ async function callClaude(prompt, maxTokens, res, extraFields = null) {
     const firstBrace = clean.indexOf('{');
     const lastBrace = clean.lastIndexOf('}');
     if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+      console.error('sentence.js JSON parse failure: no valid { } span found. Raw Claude output:', text);
       return res.status(502).json({ error: 'The lesson generator returned an unexpected response. Please try again.' });
     }
     let parsed;
     try {
       parsed = JSON.parse(clean.slice(firstBrace, lastBrace + 1));
-    } catch {
+    } catch (parseErr) {
+      console.error('sentence.js JSON parse failure: JSON.parse threw:', parseErr.message, '— Raw Claude output:', text);
       return res.status(502).json({ error: 'The lesson generator returned an unexpected response. Please try again.' });
     }
     if (extraFields) Object.assign(parsed, extraFields);
