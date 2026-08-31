@@ -184,9 +184,22 @@ ${isVeryFirstLesson ? '- This is this student\'s VERY FIRST lesson ever. Keep it
   WHY it's used that way as a short second sentence inside the "tip" field — don't assume it's
   self-evident just because it's not today's main grammar focus.
 
+REAL-WORLD PLAUSIBILITY — HARD RULE:
+A sentence can be grammatically perfect and still be nonsense — e.g. "I like my backpack at
+night" pairs a real noun, a real time expression, and a real verb, but no real person would
+plausibly say it. The sentence must describe something a real person could actually think, say,
+or do in real life.
+- Before finalizing, check: does this specific combination of subject + action + object/time/
+  place make ordinary real-world sense, not just grammatical sense?
+- If the combination is implausible or absurd (even if each word is correct and on-level),
+  rewrite the sentence with a different, sensible combination that still meets every requirement
+  above (theme, grammar point, complexity, compound word) before responding.
+
 YOUR TASK:
 1. Write ONE English sentence that:
    - Fits the theme naturally
+   - Describes something a real person would plausibly think, say, or do — not just
+     grammatically correct but semantically sensible
    - Demonstrates the grammar point: ${grammarPoint}
    - Obeys the grammar ceiling above — nothing beyond what's already been introduced
    - Matches exactly this complexity: ${complexityGuide}
